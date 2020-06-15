@@ -1,5 +1,5 @@
-## Ictoonmo
+## ictoonmo
 Icy Tower Once More
 
 ### about
-to do
+The game was heavily inspired by Icy Tower, a freeware platform game by Free Lunch Design.
