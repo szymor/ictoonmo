@@ -226,7 +226,9 @@ void Platform::draw()
 
 void Player::draw()
 {
-	cb.draw();
+	SDL_Surface *screen = SDLWrapper::getScreen();
+	SDL_Rect r = {.x = (Sint16)cb.x, .y = (Sint16)cb.y, .w = (Uint16)(cb.w + 1), .h = (Uint16)(cb.h + 1)};
+	SDL_FillRect(screen, &r, SDL_MapRGB(screen->format, 0, 0, 255));
 }
 
 void Player::jump()
@@ -358,6 +360,10 @@ void GameWorld::process(Uint32 ms)
 			break;
 		}
 	}
+	if (player.vy > 0)
+	{
+		player.standing = false;
+	}
 
 	if (player.standing && player.wannaJump)
 	{
@@ -377,9 +383,19 @@ void GameWorld::process(Uint32 ms)
 		if (platforms.begin()->cb.y > (GameWorld::PLATFORM_DISTANCE - Platform::DEFAULT_HEIGHT))
 		{
 			int y = platforms.begin()->cb.y - PLATFORM_DISTANCE;
-			int w = rand() % (SDLWrapper::SCREEN_WIDTH / 6) + SDLWrapper::SCREEN_WIDTH / 6;
-			int x = rand() % (SDLWrapper::SCREEN_WIDTH - w);
 			int no = platforms.begin()->no + 1;
+			int w = 0;
+			int x = 0;
+			if (no % 100 == 0)
+			{
+				w = SDLWrapper::SCREEN_WIDTH;
+				x = 0;
+			}
+			else
+			{
+				w = rand() % (SDLWrapper::SCREEN_WIDTH / 6) + SDLWrapper::SCREEN_WIDTH / 6;
+				x = rand() % (SDLWrapper::SCREEN_WIDTH - w - 2 * Wall::DEFAULT_WIDTH) + Wall::DEFAULT_WIDTH;
+			}
 			addPlatform(x, y, w, no);
 		}
 
