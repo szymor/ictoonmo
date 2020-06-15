@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <cmath>
+#include <string>
 
 #include <SDL/SDL.h>
 
@@ -14,6 +15,7 @@ using std::srand;
 using std::rand;
 using std::time;
 using std::fabs;
+using std::string;
 
 enum ExceptionCode
 {
@@ -61,6 +63,7 @@ class Platform
 public:
 	static constexpr int DEFAULT_HEIGHT = 16;
 	CollisionBox cb;
+	int no;
 	void draw();
 };
 
@@ -79,6 +82,7 @@ public:
 	double ay;
 	bool standing;
 	bool wannaJump;
+	int floorNo;
 	void draw();
 	void jump();
 };
@@ -97,7 +101,7 @@ protected:
 	Player player;
 	list<Wall> walls;
 	list<Platform> platforms;
-	void addPlatform(int x, int y, int w);
+	void addPlatform(int x, int y, int w, int no);
 	void addWall(int x);
 public:
 	static constexpr double PLATFORM_DISTANCE = 40;
@@ -106,6 +110,7 @@ public:
 	void draw();
 	void handleEvents();
 	void process(Uint32 ms);
+	bool gameFinished();
 };
 
 int main(int argc, char *argv[])
@@ -235,13 +240,14 @@ void Wall::draw()
 	cb.draw();
 }
 
-void GameWorld::addPlatform(int x, int y, int w)
+void GameWorld::addPlatform(int x, int y, int w, int no)
 {
 	Platform platform;
 	platform.cb.x = x;
 	platform.cb.y = y;
 	platform.cb.w = w;
 	platform.cb.h = Platform::DEFAULT_HEIGHT;
+	platform.no = no;
 	platforms.push_front(platform);
 }
 
@@ -269,14 +275,15 @@ GameWorld::GameWorld()
 	player.ay = Player::DEFAULT_ACCELERATION_Y;
 	player.standing = false;
 	player.wannaJump = false;
+	player.floorNo = 0;
 
-	addPlatform(0, SDLWrapper::SCREEN_HEIGHT - Platform::DEFAULT_HEIGHT, SDLWrapper::SCREEN_WIDTH);
+	addPlatform(0, SDLWrapper::SCREEN_HEIGHT - Platform::DEFAULT_HEIGHT, SDLWrapper::SCREEN_WIDTH, 0);
 	for (int i = 1; i * PLATFORM_DISTANCE < SDLWrapper::SCREEN_HEIGHT; ++i)
 	{
 		int y = SDLWrapper::SCREEN_HEIGHT - Platform::DEFAULT_HEIGHT - i * PLATFORM_DISTANCE;
 		int w = rand() % (SDLWrapper::SCREEN_WIDTH / 6) + SDLWrapper::SCREEN_WIDTH / 6;
 		int x = rand() % (SDLWrapper::SCREEN_WIDTH - w);
-		addPlatform(x, y, w);
+		addPlatform(x, y, w, i);
 	}
 
 	addWall(0);
@@ -285,10 +292,40 @@ GameWorld::GameWorld()
 
 GameWorld::~GameWorld()
 {
+	string postfix;
+	switch (player.floorNo % 100)
+	{
+		case 11:
+		case 12:
+		case 13:
+			postfix = "th";
+			break;
+		default:
+			switch (player.floorNo % 10)
+			{
+				case 1:
+					postfix = "st";
+					break;
+				case 2:
+					postfix = "nd";
+					break;
+				case 3:
+					postfix = "rd";
+					break;
+				default:
+					postfix = "th";
+					break;
+			}
+			break;
+	}
+	cout << "You have reached " << player.floorNo << postfix << " floor." << endl;
 }
 
 void GameWorld::process(Uint32 ms)
 {
+	if (gameFinished())
+		return;
+
 	double oldX = player.cb.x;
 	double oldY = player.cb.y;
 	player.vx += (player.ax - Player::FRICTION * player.vx) * ms / 1000.0;
@@ -315,6 +352,8 @@ void GameWorld::process(Uint32 ms)
 				player.standing = true;
 				player.vy = 0;
 				player.cb.y = oldY;
+				if (p.no > player.floorNo)
+					player.floorNo = p.no;
 			}
 			break;
 		}
@@ -340,14 +379,33 @@ void GameWorld::process(Uint32 ms)
 			int y = platforms.begin()->cb.y - PLATFORM_DISTANCE;
 			int w = rand() % (SDLWrapper::SCREEN_WIDTH / 6) + SDLWrapper::SCREEN_WIDTH / 6;
 			int x = rand() % (SDLWrapper::SCREEN_WIDTH - w);
-			addPlatform(x, y, w);
+			int no = platforms.begin()->no + 1;
+			addPlatform(x, y, w, no);
+		}
+
+		if (platforms.rbegin()->cb.y > SDLWrapper::SCREEN_HEIGHT)
+		{
+			platforms.pop_back();
 		}
 	}
+}
+
+bool GameWorld::gameFinished()
+{
+	return player.cb.y > SDLWrapper::SCREEN_HEIGHT;
 }
 
 void GameWorld::draw()
 {
 	SDL_Surface *screen = SDLWrapper::getScreen();
+
+	if (gameFinished())
+	{
+		SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 255, 0, 0));
+		SDL_Flip(screen);
+		return;
+	}
+
 	SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 255, 255, 255));
 
 	for (auto &p: platforms)
