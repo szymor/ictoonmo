@@ -40,15 +40,17 @@ class SDLWrapper
 {
 protected:
 	static SDL_Surface *screen;
+	static SDL_Surface *realScreen;
 public:
 	static constexpr int SCREEN_WIDTH = 320;
 	static constexpr int SCREEN_HEIGHT = 240;
 	static constexpr int SCREEN_BPP = 32;
 	static constexpr int FPS = 60;
-	SDLWrapper();
+	SDLWrapper(bool bufferedScreen = false);
 	~SDLWrapper();
 	static SDL_Surface *getScreen();
 	bool frameLimiter() const;
+	static void flip();
 };
 
 class CollisionBox
@@ -127,7 +129,11 @@ int main(int argc, char *argv[])
 {
 	try
 	{
+#ifdef _BITTBOY
+		SDLWrapper sdl(true);
+#else
 		SDLWrapper sdl;
+#endif
 		GameWorld gw;
 
 		Uint32 lastTicks = SDL_GetTicks();
@@ -165,16 +171,32 @@ int main(int argc, char *argv[])
 }
 
 SDL_Surface *SDLWrapper::screen = nullptr;
+SDL_Surface *SDLWrapper::realScreen = nullptr;
 
-SDLWrapper::SDLWrapper()
+SDLWrapper::SDLWrapper(bool bufferedScreen)
 {
 	if (screen != nullptr)
 		throw EC_SDLEXIST;
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) < 0)
 		throw EC_SDLINIT;
-	screen = SDL_SetVideoMode(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_BPP, SDL_HWSURFACE | SDL_DOUBLEBUF);
-	if (screen == nullptr)
-		throw EC_SDLVIDEO;
+	if (bufferedScreen)
+	{
+		realScreen = SDL_SetVideoMode(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_BPP, SDL_HWSURFACE | SDL_DOUBLEBUF);
+		if (realScreen == nullptr)
+			throw EC_SDLVIDEO;
+		screen = SDL_CreateRGBSurface(SDL_HWSURFACE, realScreen->w, realScreen->h,
+			realScreen->format->BitsPerPixel, realScreen->format->Rmask, realScreen->format->Gmask,
+			realScreen->format->Bmask, realScreen->format->Amask);
+		if (screen == nullptr)
+			throw EC_SDLVIDEO;
+	}
+	else
+	{
+		realScreen = nullptr;
+		screen = SDL_SetVideoMode(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_BPP, SDL_HWSURFACE | SDL_DOUBLEBUF);
+		if (screen == nullptr)
+			throw EC_SDLVIDEO;
+	}
 	SDL_WM_SetCaption("ictoonmo", NULL);
 	SDL_ShowCursor(SDL_DISABLE);
 }
@@ -212,6 +234,19 @@ bool SDLWrapper::frameLimiter() const
 	SDL_Delay(1);
 
 	return true;
+}
+
+void SDLWrapper::flip()
+{
+	if (realScreen == nullptr)
+	{
+		SDL_Flip(screen);
+	}
+	else
+	{
+		SDL_BlitSurface(screen, NULL, realScreen, NULL);
+		SDL_Flip(realScreen);
+	}
 }
 
 void CollisionBox::draw()
@@ -482,7 +517,7 @@ void GameWorld::draw()
 		r.y = r.h;
 		r.h = (Uint16)ratio;
 		SDL_FillRect(screen, &r, SDL_MapRGB(screen->format, 0, 255, 0));
-		SDL_Flip(screen);
+		SDLWrapper::flip();
 		return;
 	}
 
@@ -494,7 +529,7 @@ void GameWorld::draw()
 	for (auto &w: walls)
 		w.draw();
 
-	SDL_Flip(screen);
+	SDLWrapper::flip();
 }
 
 void GameWorld::handleEvents()

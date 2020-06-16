@@ -4,14 +4,16 @@ PROJECT = ictoonmo
 SRC = src/main.cpp
 OBJ = $(SRC:.cpp=.o)
 DEP = $(SRC:.cpp=.d)
-CFLAGS = -g -Iinc
-LDFLAGS = $(shell pkg-config --libs sdl)
-CC = g++
+CFLAGS = -Iinc -D_BITTBOY
+LDFLAGS = $(shell /opt/miyoo/bin/pkg-config --libs sdl)
+CC = arm-linux-g++
+STRIP = arm-linux-strip
 
 all: $(PROJECT)
 
 $(PROJECT): $(OBJ)
 	$(CC) -o $(PROJECT) $(OBJ) $(LDFLAGS)
+	$(STRIP) $(PROJECT)
 
 src/%.o: src/%.cpp
 	$(CC) $(CFLAGS) -c -o $@ $<
