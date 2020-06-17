@@ -89,6 +89,7 @@ public:
 	bool standing;
 	bool wannaJump;
 	int floorNo;
+	list<Platform>::iterator lastCollidedPlatform;
 	void draw();
 	void jump();
 };
@@ -398,20 +399,50 @@ void GameWorld::process(Uint32 ms)
 	}
 
 	player.cb.y += player.vy * ms / 1000.0;
-	for (auto &p: platforms)
+
+	if (player.vy <= 0)
 	{
+		player.lastCollidedPlatform = platforms.end();
+	}
+
+	for (auto it = platforms.begin(); it != platforms.end(); ++it)
+	{
+		auto &p = *it;
 		if (player.cb.collides(p.cb))
 		{
-			if (player.vy > 0 && (player.cb.y + player.cb.h - p.cb.y) < 1.5 )
+			// going up
+			if (player.vy < 0)
 			{
-				player.standing = true;
-				player.vy = 0;
-				player.cb.y = oldY;
-				if (p.no > player.floorNo)
+				player.lastCollidedPlatform = it;
+			}
+
+			// going down
+			if (player.vy > 0 && player.lastCollidedPlatform != it )
+			{
+				// if collision is not from side, then proceed
+				double cl = player.cb.x > p.cb.x ? player.cb.x : p.cb.x;
+				double cr = (player.cb.x + player.cb.w) < (p.cb.x + p.cb.w) ?
+							(player.cb.x + player.cb.w) : (p.cb.x + p.cb.w);
+				double cw = cr - cl;
+				double cu = player.cb.y > p.cb.y ? player.cb.y : p.cb.y;
+				double cd = (player.cb.y + player.cb.h) < (p.cb.y + p.cb.h) ?
+							(player.cb.y + player.cb.h) : (p.cb.y + p.cb.h);
+				double ch = cd - cu;
+				if (cw > ch)
 				{
-					player.floorNo = p.no;
-					if (player.floorNo > hiscore)
-						hiscore = player.floorNo;
+					player.standing = true;
+					player.vy = 0;
+					player.cb.y = oldY;
+					if (p.no > player.floorNo)
+					{
+						player.floorNo = p.no;
+						if (player.floorNo > hiscore)
+							hiscore = player.floorNo;
+					}
+				}
+				else
+				{
+					player.lastCollidedPlatform = it;
 				}
 			}
 			break;
@@ -495,6 +526,7 @@ void GameWorld::reset()
 	player.floorNo = 0;
 
 	platforms.clear();
+	player.lastCollidedPlatform = platforms.end();
 	addPlatform(0, SDLWrapper::SCREEN_HEIGHT - Platform::DEFAULT_HEIGHT, SDLWrapper::SCREEN_WIDTH, 0);
 	for (int i = 1; i * PLATFORM_DISTANCE < SDLWrapper::SCREEN_HEIGHT; ++i)
 	{
