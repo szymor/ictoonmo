@@ -124,6 +124,7 @@ public:
 	void process(Uint32 ms);
 	bool gameFinished();
 	void reset();
+	void printScore();
 };
 
 int main(int argc, char *argv[])
@@ -347,34 +348,8 @@ GameWorld::GameWorld()
 
 GameWorld::~GameWorld()
 {
-	string postfix;
-	switch (player.floorNo % 100)
-	{
-		case 11:
-		case 12:
-		case 13:
-			postfix = "th";
-			break;
-		default:
-			switch (player.floorNo % 10)
-			{
-				case 1:
-					postfix = "st";
-					break;
-				case 2:
-					postfix = "nd";
-					break;
-				case 3:
-					postfix = "rd";
-					break;
-				default:
-					postfix = "th";
-					break;
-			}
-			break;
-	}
-	cout << "You have reached " << player.floorNo << postfix << " floor." << endl;
 	saveHiscore();
+	printScore();
 }
 
 void GameWorld::process(Uint32 ms)
@@ -537,6 +512,37 @@ void GameWorld::reset()
 	}
 }
 
+void GameWorld::printScore()
+{
+	string postfix;
+	switch (player.floorNo % 100)
+	{
+		case 11:
+		case 12:
+		case 13:
+			postfix = "th";
+			break;
+		default:
+			switch (player.floorNo % 10)
+			{
+				case 1:
+					postfix = "st";
+					break;
+				case 2:
+					postfix = "nd";
+					break;
+				case 3:
+					postfix = "rd";
+					break;
+				default:
+					postfix = "th";
+					break;
+			}
+			break;
+	}
+	cout << "You have reached " << player.floorNo << postfix << " floor." << endl;
+}
+
 void GameWorld::draw()
 {
 	SDL_Surface *screen = SDLWrapper::getScreen();
@@ -578,12 +584,16 @@ void GameWorld::handleEvents()
 				{
 					case SDLK_LEFT:
 						key_left_pressed = false;
-						if (!key_right_pressed)
+						if (key_right_pressed)
+							player.ax = Player::DEFAULT_ACCELERATION_X;
+						else
 							player.ax = 0;
 						break;
 					case SDLK_RIGHT:
 						key_right_pressed = false;
-						if (!key_left_pressed)
+						if (key_left_pressed)
+							player.ax = -Player::DEFAULT_ACCELERATION_X;
+						else
 							player.ax = 0;
 						break;
 					case SDLK_SPACE:
@@ -597,6 +607,7 @@ void GameWorld::handleEvents()
 					case SDLK_SPACE:
 						if (gameFinished())
 						{
+							printScore();
 							reset();
 						}
 						else
