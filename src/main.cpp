@@ -392,7 +392,7 @@ void GameWorld::process(Uint32 ms)
 			}
 
 			// going down
-			if (player.vy > 0 && player.lastCollidedPlatform != it )
+			if (player.vy > 0 && player.lastCollidedPlatform != it)
 			{
 				// if collision is not from side, then proceed
 				double cl = player.cb.x > p.cb.x ? player.cb.x : p.cb.x;
@@ -403,7 +403,7 @@ void GameWorld::process(Uint32 ms)
 				double cd = (player.cb.y + player.cb.h) < (p.cb.y + p.cb.h) ?
 							(player.cb.y + player.cb.h) : (p.cb.y + p.cb.h);
 				double ch = cd - cu;
-				if (cw > ch)
+				if (cw > ch && (player.cb.y + player.cb.h) < (p.cb.y + p.cb.h))
 				{
 					player.standing = true;
 					player.vy = 0;
