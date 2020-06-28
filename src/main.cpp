@@ -44,8 +44,13 @@ protected:
 public:
 	static constexpr int SCREEN_WIDTH = 320;
 	static constexpr int SCREEN_HEIGHT = 240;
+#ifdef _BITTBOY
+	static constexpr int SCREEN_BPP = 16;
+	static constexpr int FPS = 40;
+#else
 	static constexpr int SCREEN_BPP = 32;
 	static constexpr int FPS = 60;
+#endif
 	SDLWrapper(bool bufferedScreen = false);
 	~SDLWrapper();
 	static SDL_Surface *getScreen();
