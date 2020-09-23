@@ -51,12 +51,22 @@ public:
 	static constexpr int SCREEN_BPP = 32;
 	static constexpr int FPS = 60;
 #endif
+	static Uint32 foregroundColor;
+	static Uint32 backgroundColor;
+	static Uint32 playerColor;
+	static Uint32 playerNegativeColor;
 	SDLWrapper(bool bufferedScreen = false);
 	~SDLWrapper();
 	static SDL_Surface *getScreen();
 	bool frameLimiter() const;
 	static void flip();
+	static void switchColors();
 };
+
+Uint32 SDLWrapper::foregroundColor = 0;
+Uint32 SDLWrapper::backgroundColor = 0;
+Uint32 SDLWrapper::playerColor = 0;
+Uint32 SDLWrapper::playerNegativeColor = 0;
 
 class CollisionBox
 {
@@ -102,7 +112,7 @@ public:
 class Wall
 {
 public:
-	static constexpr int DEFAULT_WIDTH = 16;
+	static constexpr int DEFAULT_WIDTH = 4;
 	CollisionBox cb;
 	void draw();
 };
@@ -122,6 +132,7 @@ protected:
 public:
 	static constexpr double PLATFORM_DISTANCE = 40;
 	static constexpr double PACE_COEFFICIENT = 0.005;
+	static constexpr Uint32 RESET_TIMEOUT = 2000;
 	GameWorld();
 	~GameWorld();
 	void draw();
@@ -143,6 +154,7 @@ int main(int argc, char *argv[])
 #endif
 		GameWorld gw;
 
+		Uint32 resetTimer = 0;
 		Uint32 lastTicks = SDL_GetTicks();
 		while (true)
 		{
@@ -152,6 +164,16 @@ int main(int argc, char *argv[])
 			Uint32 oldTicks = lastTicks;
 			lastTicks = SDL_GetTicks();
 			gw.process(lastTicks - oldTicks);
+			if (gw.gameFinished())
+			{
+				resetTimer += lastTicks - oldTicks;
+				if (resetTimer > GameWorld::RESET_TIMEOUT)
+				{
+					resetTimer = 0;
+					gw.printScore();
+					gw.reset();
+				}
+			}
 		}
 	}
 	catch (ExceptionCode ec)
@@ -168,7 +190,7 @@ int main(int argc, char *argv[])
 				cerr << "SDL video mode setting failed." << endl;
 				break;
 			case EC_QUIT:
-				cerr << "Application quitting gracefully..." << endl;
+				// cerr << "Application quitting gracefully..." << endl;
 				break;
 			default:
 				cerr << "Unknown error occured." << endl;
@@ -206,6 +228,11 @@ SDLWrapper::SDLWrapper(bool bufferedScreen)
 	}
 	SDL_WM_SetCaption("ictoonmo", NULL);
 	SDL_ShowCursor(SDL_DISABLE);
+
+	foregroundColor = SDL_MapRGB(screen->format, 0, 0, 0);
+	backgroundColor = SDL_MapRGB(screen->format, 255, 255, 255);
+	playerColor = SDL_MapRGB(screen->format, 0, 0, 255);
+	playerNegativeColor = SDL_MapRGB(screen->format, 255, 255, 0);
 }
 
 SDLWrapper::~SDLWrapper()
@@ -256,11 +283,21 @@ void SDLWrapper::flip()
 	}
 }
 
+void SDLWrapper::switchColors()
+{
+	Uint32 temp = foregroundColor;
+	foregroundColor = backgroundColor;
+	backgroundColor = temp;
+	temp = playerColor;
+	playerColor = playerNegativeColor;
+	playerNegativeColor = temp;
+}
+
 void CollisionBox::draw()
 {
 	SDL_Surface *screen = SDLWrapper::getScreen();
 	SDL_Rect r = {.x = (Sint16)x, .y = (Sint16)y, .w = (Uint16)w, .h = (Uint16)h};
-	SDL_FillRect(screen, &r, SDL_MapRGB(screen->format, 0, 0, 0));
+	SDL_FillRect(screen, &r, SDLWrapper::foregroundColor);
 }
 
 bool CollisionBox::collides(const CollisionBox &cb)
@@ -280,7 +317,7 @@ void Player::draw()
 {
 	SDL_Surface *screen = SDLWrapper::getScreen();
 	SDL_Rect r = {.x = (Sint16)cb.x, .y = (Sint16)cb.y, .w = (Uint16)(cb.w + 1), .h = (Uint16)(cb.h + 1)};
-	SDL_FillRect(screen, &r, SDL_MapRGB(screen->format, 0, 0, 255));
+	SDL_FillRect(screen, &r, SDLWrapper::playerColor);
 }
 
 void Player::jump()
@@ -545,26 +582,14 @@ void GameWorld::printScore()
 			}
 			break;
 	}
-	cout << "You have reached " << player.floorNo << postfix << " floor." << endl;
+	cout << "You have reached the " << player.floorNo << postfix << " floor." << endl;
 }
 
 void GameWorld::draw()
 {
 	SDL_Surface *screen = SDLWrapper::getScreen();
 
-	if (gameFinished())
-	{
-		int ratio = screen->h * player.floorNo / hiscore;
-		SDL_Rect r = {.x = 0, .y = 0, .w = (Uint16)screen->w, .h = (Uint16)(screen->h - ratio)};
-		SDL_FillRect(screen, &r, SDL_MapRGB(screen->format, 255, 0, 0));
-		r.y = r.h;
-		r.h = (Uint16)ratio;
-		SDL_FillRect(screen, &r, SDL_MapRGB(screen->format, 0, 255, 0));
-		SDLWrapper::flip();
-		return;
-	}
-
-	SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 255, 255, 255));
+	SDL_FillRect(screen, NULL, SDLWrapper::backgroundColor);
 
 	for (auto &p: platforms)
 		p.draw();
@@ -609,19 +634,14 @@ void GameWorld::handleEvents()
 			case SDL_KEYDOWN:
 				switch (event.key.keysym.sym)
 				{
+					case SDLK_RETURN:
+						SDLWrapper::switchColors();
+						break;
 					case SDLK_SPACE:
-						if (gameFinished())
+						player.wannaJump = true;
+						if (player.standing)
 						{
-							printScore();
-							reset();
-						}
-						else
-						{
-							player.wannaJump = true;
-							if (player.standing)
-							{
-								player.jump();
-							}
+							player.jump();
 						}
 						break;
 					case SDLK_LEFT:
