@@ -7,6 +7,8 @@
 #include <string>
 
 #include <SDL/SDL.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 using std::cout;
 using std::cerr;
@@ -133,6 +135,8 @@ public:
 	static constexpr double PLATFORM_DISTANCE = 40;
 	static constexpr double PACE_COEFFICIENT = 0.005;
 	static constexpr Uint32 RESET_TIMEOUT = 2000;
+	static constexpr char GAMEDIR[] = ".ictoonmo";
+	static constexpr char HISCORE_FILE[] = "hiscore.dat";
 	GameWorld();
 	~GameWorld();
 	void draw();
@@ -142,6 +146,9 @@ public:
 	void reset();
 	void printScore();
 };
+
+constexpr char GameWorld::GAMEDIR[];
+constexpr char GameWorld::HISCORE_FILE[];
 
 // font api
 extern SDL_Surface *screen_surface;
@@ -364,7 +371,11 @@ void GameWorld::saveHiscore()
 {
 	if (hiscore > lastSavedHiscore)
 	{
-		ofstream ofs("hiscore.dat");
+		const char *home = getenv("HOME");
+		string path = string(home) + "/" + GAMEDIR;
+		mkdir(path.c_str(), 0744);
+		path += string("/") + HISCORE_FILE;
+		ofstream ofs(path);
 		ofs << hiscore;
 		lastSavedHiscore = hiscore;
 	}
@@ -372,7 +383,9 @@ void GameWorld::saveHiscore()
 
 void GameWorld::loadHiscore()
 {
-	ifstream ifs("hiscore.dat");
+	const char *home = getenv("HOME");
+	string path = string(home) + "/" + GAMEDIR + "/" + HISCORE_FILE;
+	ifstream ifs(path);
 	if (ifs.good())
 	{
 		ifs >> hiscore;
