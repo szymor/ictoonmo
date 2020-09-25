@@ -48,7 +48,7 @@ public:
 	static constexpr int SCREEN_BPP = 16;
 	static constexpr int FPS = 40;
 #else
-	static constexpr int SCREEN_BPP = 32;
+	static constexpr int SCREEN_BPP = 16;
 	static constexpr int FPS = 60;
 #endif
 	static Uint32 foregroundColor;
@@ -143,6 +143,10 @@ public:
 	void printScore();
 };
 
+// font api
+extern SDL_Surface *screen_surface;
+void psp_sdl_print(int x, int y, const char *str, int color);
+
 int main(int argc, char *argv[])
 {
 	try
@@ -153,13 +157,17 @@ int main(int argc, char *argv[])
 		SDLWrapper sdl;
 #endif
 		GameWorld gw;
+		// workaround for font module dependency
+		screen_surface = sdl.getScreen();
 
 		Uint32 resetTimer = 0;
 		Uint32 lastTicks = SDL_GetTicks();
 		while (true)
 		{
 			if (!sdl.frameLimiter())
+			{
 				gw.draw();
+			}
 			gw.handleEvents();
 			Uint32 oldTicks = lastTicks;
 			lastTicks = SDL_GetTicks();
@@ -597,6 +605,10 @@ void GameWorld::draw()
 	for (auto &w: walls)
 		w.draw();
 
+	string status = std::to_string(player.floorNo) + "/" + std::to_string(hiscore);
+	int xpos = SDLWrapper::SCREEN_WIDTH - (status.length() + 1) * 8;
+	int ypos = 4;
+	psp_sdl_print(xpos, ypos, status.c_str(), SDLWrapper::foregroundColor);
 	SDLWrapper::flip();
 }
 
