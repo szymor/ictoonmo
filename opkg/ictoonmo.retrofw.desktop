@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=ictoonmo
+Comment=Icy Tower Once More
+Exec=ictoonmo
+Terminal=false
+Type=Game
+StartupNotify=true
+Categories=games;
+Version=20200706
+X-OD-Manual=readme.txt

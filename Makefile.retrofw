@@ -1,15 +1,22 @@
 .PHONY: all clean
 
 PROJECT = ictoonmo
+OPKG = $(PROJECT).opk
+OPKDIR = opkg
 SRC = src/main.cpp src/font.cpp
 OBJ = $(SRC:.cpp=.o)
 DEP = $(SRC:.cpp=.d)
-CFLAGS = -Iinc -D_BITTBOY
-LDFLAGS = $(shell /opt/miyoo/bin/pkg-config --libs sdl)
-CC = arm-linux-g++
-STRIP = arm-linux-strip
+CFLAGS = -Iinc -DNO_FRAMELIMIT -Ofast
+LDFLAGS = $(shell /opt/retrofw/bin/pkg-config --libs sdl)
+CC = mipsel-linux-g++
+STRIP = mipsel-linux-strip
 
-all: $(PROJECT)
+all: $(OPKG)
+
+$(OPKG): $(PROJECT)
+	cp -f $(PROJECT) $(OPKDIR)/
+	cp -f README.md $(OPKDIR)/readme.txt
+	mksquashfs $(OPKDIR) $@ -noappend -no-xattrs
 
 $(PROJECT): $(OBJ)
 	$(CC) -o $(PROJECT) $(OBJ) $(LDFLAGS)
