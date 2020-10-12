@@ -1,0 +1,30 @@
+.PHONY: all clean
+
+PROJECT = ictoonmo.html
+SRC = src/main.cpp src/font.cpp
+OBJ = $(SRC:.cpp=.o)
+DEP = $(SRC:.cpp=.d)
+FLAGS = -s WASM=0 -s ASYNCIFY -s DISABLE_EXCEPTION_CATCHING=0
+CFLAGS = $(FLAGS) -Iinc
+LDFLAGS = $(FLAGS) $(shell pkg-config --libs sdl)
+CC = em++
+
+all: $(PROJECT)
+
+$(PROJECT): $(OBJ)
+	$(CC) -o $(PROJECT) $(OBJ) $(LDFLAGS)
+
+src/%.o: src/%.cpp
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+src/%.d: src/%.cpp
+	@set -e; \
+	rm -f $@; \
+	$(CC) -MM $(CFLAGS) $< > $@.$$$$; \
+	sed 's,\($*\)\.o[ :]*,src/\1.o $@ : ,g' < $@.$$$$ > $@; \
+	rm -f $@.$$$$
+
+clean:
+	rm -rf $(PROJECT) ictoonmo.js $(OBJ) $(DEP) src/*.d.*
+
+-include $(DEP)

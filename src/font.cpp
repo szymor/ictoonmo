@@ -18,6 +18,11 @@
 
 #include <SDL/SDL.h>
 
+#ifdef __EMSCRIPTEN__
+typedef unsigned short ushort;
+typedef unsigned int uint;
+#endif
+
 #define GP2X_SDL_SCREEN_WIDTH	320
 #define GP2X_SDL_SCREEN_HEIGHT	240
 
@@ -59,7 +64,7 @@ int            psp_font_height = 8;
 
 unsigned char psp_convert_utf8_to_iso_8859_1(unsigned char c1, unsigned char c2);
 void psp_sdl_print(int x, int y, const char *str, int color);
-// requires 16 bpp, not works on 32 bpp
+// requires 16 bpp, does not work on 32 bpp
 void psp_sdl_put_char(int x, int y, int color, int bgcolor, uchar c, int drawfg, int drawbg);
 ushort *psp_sdl_get_vram_addr(uint x, uint y);
 
@@ -121,17 +126,21 @@ void psp_sdl_put_char(int x, int y, int color, int bgcolor, uchar c, int drawfg,
 
 void psp_sdl_print(int x, int y, const char *str, int color)
 {
-  int index;
-  int x0 = x;
+	int index;
+	int x0 = x;
 
-  for (index = 0; str[index] != '\0'; index++) {
-    psp_sdl_put_char(x, y, color, 0, str[index], 1, 0);
-    x += psp_font_width;
-    if (x >= (GP2X_SDL_SCREEN_WIDTH - psp_font_width)) {
-      x = x0; y++;
-    }
-    if (y >= (GP2X_SDL_SCREEN_HEIGHT - psp_font_width)) break;
-  }
+	if (SDL_MUSTLOCK(screen_surface))
+		SDL_LockSurface(screen_surface);
+	for (index = 0; str[index] != '\0'; index++) {
+		psp_sdl_put_char(x, y, color, 0, str[index], 1, 0);
+		x += psp_font_width;
+		if (x >= (GP2X_SDL_SCREEN_WIDTH - psp_font_width)) {
+			x = x0; y++;
+		}
+		if (y >= (GP2X_SDL_SCREEN_HEIGHT - psp_font_width)) break;
+	}
+	if (SDL_MUSTLOCK(screen_surface))
+		SDL_UnlockSurface(screen_surface);
 }
 
 unsigned char psp_convert_utf8_to_iso_8859_1(unsigned char c1, unsigned char c2)

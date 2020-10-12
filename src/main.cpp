@@ -10,6 +10,11 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#include <emscripten/html5.h>
+#endif
+
 using std::cout;
 using std::cerr;
 using std::endl;
@@ -46,9 +51,12 @@ protected:
 public:
 	static constexpr int SCREEN_WIDTH = 320;
 	static constexpr int SCREEN_HEIGHT = 240;
-#ifdef _BITTBOY
+#if defined(_BITTBOY)
 	static constexpr int SCREEN_BPP = 16;
 	static constexpr int FPS = 40;
+#elif defined(__EMSCRIPTEN__)
+	static constexpr int SCREEN_BPP = 32;
+	static constexpr int FPS = 60;
 #else
 	static constexpr int SCREEN_BPP = 16;
 	static constexpr int FPS = 60;
@@ -280,7 +288,11 @@ bool SDLWrapper::frameLimiter() const
 		return false;
 	}
 
+#ifdef __EMSCRIPTEN__
+	emscripten_sleep(1);
+#else
 	SDL_Delay(1);
+#endif
 
 	return true;
 }
@@ -618,10 +630,12 @@ void GameWorld::draw()
 	for (auto &w: walls)
 		w.draw();
 
+#ifndef __EMSCRIPTEN__
 	string status = std::to_string(player.floorNo) + "/" + std::to_string(hiscore);
 	int xpos = SDLWrapper::SCREEN_WIDTH - (status.length() + 1) * 8;
 	int ypos = 4;
 	psp_sdl_print(xpos, ypos, status.c_str(), SDLWrapper::foregroundColor);
+#endif
 	SDLWrapper::flip();
 }
 
