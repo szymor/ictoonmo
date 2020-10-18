@@ -1,7 +1,7 @@
 .PHONY: all clean
 
 PROJECT = ictoonmo
-SRC = src/main.cpp src/font.cpp
+SRC = src/main.cpp src/gfx.cpp src/game.cpp
 OBJ = $(SRC:.cpp=.o)
 DEP = $(SRC:.cpp=.d)
 CFLAGS = -g -Iinc
