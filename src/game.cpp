@@ -295,12 +295,10 @@ void GameWorld::draw()
 	for (auto &w: walls)
 		w.draw();
 
-#ifndef __EMSCRIPTEN__
 	string status = std::to_string(player.floorNo) + "/" + std::to_string(hiscore);
 	int xpos = SCREEN_WIDTH - (status.length() + 1) * 8;
 	int ypos = 4;
 	psp_sdl_print(xpos, ypos, status.c_str(), foregroundColor);
-#endif
 	SDL_Flip(screen);
 }
 

@@ -4,7 +4,7 @@ PROJECT = ictoonmo
 SRC = src/main.cpp src/gfx.cpp src/game.cpp
 OBJ = $(SRC:.cpp=.o)
 DEP = $(SRC:.cpp=.d)
-CFLAGS = -g -Iinc
+CFLAGS = -std=c++17 -g -Iinc
 LDFLAGS = $(shell pkg-config --libs sdl)
 CC = g++
 

@@ -18,6 +18,10 @@
  */
 
 #include "gfx.hpp"
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#include <emscripten/html5.h>
+#endif
 
 namespace
 {
@@ -60,9 +64,8 @@ namespace
 	int            psp_font_width  = 8;
 	int            psp_font_height = 8;
 
-	// requires 16 bpp, does not work on 32 bpp
-	void psp_sdl_put_char(int x, int y, int color, int bgcolor, uchar c, int drawfg, int drawbg);
-	ushort *psp_sdl_get_vram_addr(uint x, uint y);
+	void psp_sdl_put_char(int x, int y, Uint32 color, Uint32 bgcolor, uchar c, int drawfg, int drawbg);
+	auto *psp_sdl_get_vram_addr(uint x, uint y);
 }
 
 SDL_Surface *screen = nullptr;
@@ -123,7 +126,7 @@ bool frameLimiter()
 	return true;
 }
 
-void psp_sdl_print(int x, int y, const char *str, int color)
+void psp_sdl_print(int x, int y, const char *str, Uint32 color)
 {
 	int index;
 	int x0 = x;
@@ -154,20 +157,28 @@ unsigned char psp_convert_utf8_to_iso_8859_1(unsigned char c1, unsigned char c2)
 
 namespace
 {
-	ushort *psp_sdl_get_vram_addr(uint x, uint y)
+	auto *psp_sdl_get_vram_addr(uint x, uint y)
 	{
-	  ushort *vram = (ushort *)screen->pixels;
-	  return vram + x + (y * SCREEN_WIDTH);
+		if constexpr (SCREEN_BPP == 32)
+		{
+			uint *vram = (uint *)screen->pixels;
+			return vram + x + (y * SCREEN_WIDTH);
+		}
+		else
+		{
+			ushort *vram = (ushort *)screen->pixels;
+			return vram + x + (y * SCREEN_WIDTH);
+		}
 	}
 
-	void psp_sdl_put_char(int x, int y, int color, int bgcolor, uchar c, int drawfg, int drawbg)
+	void psp_sdl_put_char(int x, int y, Uint32 color, Uint32 bgcolor, uchar c, int drawfg, int drawbg)
 	{
 	  int cx;
 	  int cy;
 	  int b;
 	  int index;
 
-	  ushort *vram = (ushort *)psp_sdl_get_vram_addr(x, y);
+	  auto *vram = psp_sdl_get_vram_addr(x, y);
 
 	  if (psp_font_width > 8) {
 		index = ((ushort)c) * psp_font_height * 2;
