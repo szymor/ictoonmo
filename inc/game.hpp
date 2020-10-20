@@ -19,7 +19,7 @@ public:
 class Platform
 {
 public:
-	static constexpr int DEFAULT_HEIGHT = 16;
+	static constexpr int DEFAULT_HEIGHT = 32;
 	CollisionBox cb;
 	int no;
 	void draw();
@@ -28,11 +28,11 @@ public:
 class Player
 {
 public:
-	static constexpr double DEFAULT_ACCELERATION_X = 2000;
-	static constexpr double DEFAULT_ACCELERATION_Y = 1000;
+	static constexpr double DEFAULT_ACCELERATION_X = 4000;
+	static constexpr double DEFAULT_ACCELERATION_Y = 2000;
 	static constexpr double FRICTION = 5;
-	static constexpr double JUMP_POWER = 300;
-	static constexpr double JUMP_COEFFICIENT = 0.002;
+	static constexpr double JUMP_POWER = 600;
+	static constexpr double JUMP_COEFFICIENT = 0.001;
 	CollisionBox cb;
 	double vx;
 	double vy;
@@ -49,7 +49,7 @@ public:
 class Wall
 {
 public:
-	static constexpr int DEFAULT_WIDTH = 4;
+	static constexpr int DEFAULT_WIDTH = 8;
 	CollisionBox cb;
 	void draw();
 };
@@ -69,8 +69,8 @@ protected:
 	void saveHiscore();
 	void loadHiscore();
 public:
-	static constexpr double PLATFORM_DISTANCE = 40;
-	static constexpr double PACE_COEFFICIENT = 0.005;
+	static constexpr double PLATFORM_DISTANCE = 80;
+	static constexpr double PACE_COEFFICIENT = 0.01;
 	static constexpr Uint32 RESET_TIMEOUT = 2000;
 	static constexpr char GAMEDIR[] = ".ictoonmo";
 	static constexpr char HISCORE_FILE[] = "hiscore.dat";

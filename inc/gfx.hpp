@@ -18,8 +18,8 @@ public:
 	~SDLGuard();
 };
 
-constexpr int SCREEN_WIDTH = 320;
-constexpr int SCREEN_HEIGHT = 240;
+constexpr int SCREEN_WIDTH = 640;
+constexpr int SCREEN_HEIGHT = 480;
 #if defined(_BITTBOY)
 constexpr int SCREEN_BPP = 16;
 constexpr int FPS = 40;

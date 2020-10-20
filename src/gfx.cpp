@@ -60,9 +60,9 @@ namespace
 		 { (char*)"16x22", psp_font_lat1_16x22, 16, 22 }
 	};
 
-	unsigned char *psp_font = psp_font_lat1_8x8;
-	int            psp_font_width  = 8;
-	int            psp_font_height = 8;
+	unsigned char *psp_font = psp_font_lat1_16x22;
+	int            psp_font_width  = 16;
+	int            psp_font_height = 22;
 
 	void psp_sdl_put_char(int x, int y, Uint32 color, Uint32 bgcolor, uchar c, int drawfg, int drawbg);
 	auto *psp_sdl_get_vram_addr(uint x, uint y);

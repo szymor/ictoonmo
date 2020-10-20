@@ -229,9 +229,9 @@ void GameWorld::reset()
 	saveHiscore();
 
 	player.cb.x = SCREEN_WIDTH / 2;
-	player.cb.y = SCREEN_HEIGHT - 40;
-	player.cb.w = 16;
-	player.cb.h = 16;
+	player.cb.y = SCREEN_HEIGHT - 80;
+	player.cb.w = 32;
+	player.cb.h = 32;
 	player.vx = 0;
 	player.vy = 0;
 	player.ax = 0;
@@ -296,7 +296,7 @@ void GameWorld::draw()
 		w.draw();
 
 	string status = std::to_string(player.floorNo) + "/" + std::to_string(hiscore);
-	int xpos = SCREEN_WIDTH - (status.length() + 1) * 8;
+	int xpos = SCREEN_WIDTH - (status.length() + 1) * 16;
 	int ypos = 4;
 	psp_sdl_print(xpos, ypos, status.c_str(), foregroundColor);
 	SDL_Flip(screen);
