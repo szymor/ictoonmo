@@ -33,16 +33,6 @@ void GameWorld::addPlatform(int x, int y, int w, int no)
 	platforms.push_front(platform);
 }
 
-void GameWorld::addWall(int x)
-{
-	Wall wall;
-	wall.cb.x = x;
-	wall.cb.y = 0;
-	wall.cb.w = Wall::DEFAULT_WIDTH;
-	wall.cb.h = SCREEN_HEIGHT;
-	walls.push_back(wall);
-}
-
 void GameWorld::saveHiscore()
 {
 	if (hiscore > lastSavedHiscore)
@@ -77,10 +67,6 @@ void GameWorld::loadHiscore()
 GameWorld::GameWorld() : mt(rd())
 {
 	loadHiscore();
-
-	addWall(0);
-	addWall(SCREEN_WIDTH - Wall::DEFAULT_WIDTH);
-
 	reset();
 }
 
@@ -95,23 +81,24 @@ void GameWorld::process(Uint32 ms)
 	if (gameFinished())
 		return;
 
+	double msd = ms / 1000.0;
 	double oldX = player.cb.x;
 	double oldY = player.cb.y;
-	player.vx += (player.ax - Player::FRICTION * player.vx) * ms / 1000.0;
-	player.vy += player.ay * ms / 1000.0;
 
-	player.cb.x += player.vx * ms / 1000.0;
-	for (auto &w: walls)
+	player.cb.x += player.vx * msd;
+	if (player.cb.x < WALL_WIDTH)
 	{
-		if (player.cb.collides(w.cb))
-		{
-			player.vx = -player.vx;
-			player.cb.x = oldX;
-			break;
-		}
+		player.cb.x = WALL_WIDTH;
+		player.vx = -BOUNCINESS * player.vx;
 	}
-
-	player.cb.y += player.vy * ms / 1000.0;
+	if (player.cb.x + player.cb.w > SCREEN_WIDTH - WALL_WIDTH)
+	{
+		player.cb.x = SCREEN_WIDTH - player.cb.w - WALL_WIDTH;
+		player.vx = -BOUNCINESS * player.vx;
+	}
+	player.cb.y += player.vy * msd;
+	player.vx += (player.ax - Player::FRICTION * player.vx) * msd;
+	player.vy += player.ay * msd;
 
 	if (player.vy <= 0)
 	{
@@ -141,11 +128,12 @@ void GameWorld::process(Uint32 ms)
 				double cd = (player.cb.y + player.cb.h) < (p.cb.y + p.cb.h) ?
 							(player.cb.y + player.cb.h) : (p.cb.y + p.cb.h);
 				double ch = cd - cu;
-				if (cw > ch && (player.cb.y + player.cb.h) < (p.cb.y + p.cb.h))
+				if ((cw > ch && (player.cb.y + player.cb.h) < (p.cb.y + p.cb.h)) ||
+					((oldY + player.cb.h) <= p.cb.y))
 				{
 					player.standing = true;
 					player.vy = 0;
-					player.cb.y = oldY;
+					player.cb.y = p.cb.y - player.cb.h;
 					if (p.no > player.floorNo)
 					{
 						player.floorNo = p.no;
@@ -206,7 +194,7 @@ void GameWorld::process(Uint32 ms)
 		{
 			std::uniform_int_distribution<int> udw(SCREEN_WIDTH / 6, 2 * SCREEN_WIDTH / 6);
 			w = udw(mt);
-			std::uniform_int_distribution<int> udx(Wall::DEFAULT_WIDTH, SCREEN_WIDTH - w - Wall::DEFAULT_WIDTH);
+			std::uniform_int_distribution<int> udx(WALL_WIDTH, SCREEN_WIDTH - w - WALL_WIDTH);
 			x = udx(mt);
 		}
 		addPlatform(x, y, w, no);
@@ -248,7 +236,7 @@ void GameWorld::reset()
 		int y = SCREEN_HEIGHT - Platform::DEFAULT_HEIGHT - i * PLATFORM_DISTANCE;
 		std::uniform_int_distribution<int> udw(SCREEN_WIDTH / 6, 2 * SCREEN_WIDTH / 6);
 		int w = udw(mt);
-		std::uniform_int_distribution<int> udx(Wall::DEFAULT_WIDTH, SCREEN_WIDTH - w - Wall::DEFAULT_WIDTH);
+		std::uniform_int_distribution<int> udx(WALL_WIDTH, SCREEN_WIDTH - w - WALL_WIDTH);
 		int x = udx(mt);
 		addPlatform(x, y, w, i);
 	}
@@ -288,12 +276,14 @@ void GameWorld::printScore()
 void GameWorld::draw()
 {
 	SDL_FillRect(screen, NULL, backgroundColor);
+	SDL_Rect r = {.x = 0, .y = 0, .w = WALL_WIDTH, .h = SCREEN_HEIGHT};
+	SDL_FillRect(screen, &r, foregroundColor);
+	r.x = SCREEN_WIDTH - WALL_WIDTH;
+	SDL_FillRect(screen, &r, foregroundColor);
 
 	for (auto &p: platforms)
 		p.draw();
 	player.draw();
-	for (auto &w: walls)
-		w.draw();
 
 	string status = std::to_string(player.floorNo) + "/" + std::to_string(hiscore);
 	int xpos = SCREEN_WIDTH - (status.length() + 1) * 8;
@@ -400,7 +390,7 @@ void Platform::draw()
 
 void Player::draw()
 {
-	SDL_Rect r = {.x = (Sint16)cb.x, .y = (Sint16)cb.y, .w = (Uint16)(cb.w + 1), .h = (Uint16)(cb.h + 1)};
+	SDL_Rect r = {.x = (Sint16)cb.x, .y = (Sint16)cb.y, .w = (Uint16)(cb.w), .h = (Uint16)(cb.h)};
 	SDL_FillRect(screen, &r, playerColor);
 }
 
@@ -408,9 +398,4 @@ void Player::jump()
 {
 	standing = false;
 	vy = -JUMP_POWER - fabs(vx * vx * JUMP_COEFFICIENT);
-}
-
-void Wall::draw()
-{
-	cb.draw();
 }

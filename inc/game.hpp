@@ -46,14 +46,6 @@ public:
 	void jump();
 };
 
-class Wall
-{
-public:
-	static constexpr int DEFAULT_WIDTH = 4;
-	CollisionBox cb;
-	void draw();
-};
-
 class GameWorld
 {
 protected:
@@ -62,13 +54,13 @@ protected:
 	int hiscore;
 	int lastSavedHiscore;
 	Player player;
-	std::list<Wall> walls;
 	std::list<Platform> platforms;
 	void addPlatform(int x, int y, int w, int no);
-	void addWall(int x);
 	void saveHiscore();
 	void loadHiscore();
 public:
+	static constexpr int WALL_WIDTH = 4;
+	static constexpr double BOUNCINESS = 0.7;
 	static constexpr double PLATFORM_DISTANCE = 40;
 	static constexpr double PACE_COEFFICIENT = 0.005;
 	static constexpr Uint32 RESET_TIMEOUT = 2000;

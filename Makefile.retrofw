@@ -3,10 +3,10 @@
 PROJECT = ictoonmo
 OPKG = $(PROJECT).opk
 OPKDIR = opkg
-SRC = src/main.cpp src/font.cpp
+SRC = src/main.cpp src/gfx.cpp src/game.cpp
 OBJ = $(SRC:.cpp=.o)
 DEP = $(SRC:.cpp=.d)
-CFLAGS = -Iinc -DNO_FRAMELIMIT -Ofast
+CFLAGS = -std=c++17 -Iinc -DNO_FRAMELIMIT -Ofast
 LDFLAGS = $(shell /opt/retrofw/bin/pkg-config --libs sdl)
 CC = mipsel-linux-g++
 STRIP = mipsel-linux-strip
