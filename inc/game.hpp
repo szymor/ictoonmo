@@ -27,6 +27,7 @@ public:
 	static constexpr int DEFAULT_HEIGHT = 16;
 	CollisionBox cb;
 	int no;
+	bool deleteFlag = false;
 	virtual ~IPlatform() = default;
 	virtual void draw() = 0;
 	virtual void process(Uint32 ms) = 0;
@@ -38,6 +39,20 @@ public:
 	explicit BasicPlatform(GameWorld *gw, int no, double y);
 	void draw() override;
 	void process(Uint32 ms) override;
+protected:
+	GameWorld *gw;
+};
+
+class DisappearingPlatform : public BasicPlatform
+{
+public:
+	bool running;
+	explicit DisappearingPlatform(GameWorld *gw, int no, double y, double maxt = 0);
+	void draw() override;
+	void process(Uint32 ms) override;
+private:
+	double t;
+	double maxt;
 };
 
 class MovingPlatform : public IPlatform

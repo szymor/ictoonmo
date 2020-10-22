@@ -126,6 +126,9 @@ void GameWorld::process(Uint32 ms)
 					((oldY + player.cb.h) <= p->cb.y))
 				{
 					player.standingPlatform = p.get();
+					DisappearingPlatform *dp = dynamic_cast<DisappearingPlatform*>(p.get());
+					if (dp)
+						dp->running = true;
 					player.vy = 0;
 					player.cb.y = p->cb.y - player.cb.h;
 					if (p->no > player.floorNo)
@@ -186,20 +189,25 @@ void GameWorld::process(Uint32 ms)
 		}
 		else
 		{
-			platform = make_unique<MovingPlatform>(this, no, y);
+			platform = make_unique<DisappearingPlatform>(this, no, y);
 		}
 		platforms.push_front(std::move(platform));
 	}
+
+	// active platform processing
+	for (auto &p: platforms)
+		p->process(ms);
 
 	// platform destruction
 	if ((*platforms.rbegin())->cb.y > SCREEN_HEIGHT)
 	{
 		platforms.pop_back();
 	}
-
-	// active platform processing
-	for (auto &p: platforms)
-		p->process(ms);
+	for (auto i = platforms.begin(); i != platforms.end(); ++i)
+	{
+		if ((*i)->deleteFlag)
+			i = platforms.erase(i);
+	}
 }
 
 bool GameWorld::gameFinished()
@@ -368,8 +376,8 @@ bool CollisionBox::collides(const CollisionBox &cb)
 }
 
 BasicPlatform::BasicPlatform(GameWorld *gw, int no, double y)
+	: gw{gw}
 {
-	(void)gw;
 	this->no = no;
 	this->cb.y = y;
 	this->cb.h = IPlatform::DEFAULT_HEIGHT;
@@ -387,6 +395,43 @@ void BasicPlatform::draw()
 void BasicPlatform::process(Uint32 ms)
 {
 	(void)ms;
+}
+
+DisappearingPlatform::DisappearingPlatform(GameWorld *gw, int no, double y, double maxt)
+	: BasicPlatform(gw, no, y), t{0.0}, maxt{maxt}, running{false}
+{
+	if (0 == maxt)
+	{
+		std::uniform_real_distribution<> udmt(0.3, 1.0);
+		this->maxt = udmt(mt);
+	}
+}
+
+void DisappearingPlatform::draw()
+{
+	Uint8 br, bg, bb, fr, fg, fb;
+	SDL_GetRGB(backgroundColor, screen->format, &br, &bg, &bb);
+	SDL_GetRGB(foregroundColor, screen->format, &fr, &fg, &fb);
+	double ratio = t / maxt;
+	Uint8 r = ratio * br + (1 - ratio) * fr;
+	Uint8 g = ratio * bg + (1 - ratio) * fg;
+	Uint8 b = ratio * bb + (1 - ratio) * fb;
+	Uint32 finalColor = SDL_MapRGB(screen->format, r, g, b);
+
+	SDL_Rect rect = {.x = (Sint16)cb.x, .y = (Sint16)cb.y, .w = (Uint16)cb.w, .h = (Uint16)cb.h};
+	SDL_FillRect(screen, &rect, finalColor);
+}
+
+void DisappearingPlatform::process(Uint32 ms)
+{
+	if (running)
+	{
+		t += ms / 1000.0;
+		if (t > maxt)
+		{
+			deleteFlag = true;
+		}
+	}
 }
 
 MovingPlatform::MovingPlatform(GameWorld *gw, int no, double y, double freq)
