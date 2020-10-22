@@ -1,9 +1,12 @@
 #ifndef _H_GAME
 #define _H_GAME
 
+#include <memory>
 #include <random>
 #include <list>
 #include <SDL/SDL.h>
+
+#include "gfx.hpp"
 
 class CollisionBox
 {
@@ -16,18 +19,42 @@ public:
 	bool collides(const CollisionBox &cb);
 };
 
-class Platform
+class IPlatform
 {
 public:
 	static constexpr int DEFAULT_HEIGHT = 16;
 	CollisionBox cb;
 	int no;
-	void draw();
+	virtual ~IPlatform() = default;
+	virtual void draw() = 0;
+	virtual void process(Uint32 ms) = 0;
+};
+
+class BasicPlatform : public IPlatform
+{
+public:
+	explicit BasicPlatform(int no, double y);
+	void draw() override;
+	void process(Uint32 ms) override;
+};
+
+class MovingPlatform : public IPlatform
+{
+public:
+	explicit MovingPlatform(int no, double y, double freq = 0);
+	void draw() override;
+	void process(Uint32 ms) override;
+private:
+	double centerx;
+	double spanx;
+	double freq;
+	double t;
 };
 
 class Player
 {
 public:
+	static constexpr int SIZE = 16;
 	static constexpr double DEFAULT_ACCELERATION_X = 2000;
 	static constexpr double DEFAULT_ACCELERATION_Y = 1000;
 	static constexpr double FRICTION = 5;
@@ -41,7 +68,9 @@ public:
 	bool standing;
 	bool wannaJump;
 	int floorNo;
-	std::list<Platform>::iterator lastCollidedPlatform;
+	std::list<std::unique_ptr<IPlatform>>::iterator lastCollidedPlatform;
+	Player();
+	void reset();
 	void draw();
 	void jump();
 };
@@ -49,13 +78,10 @@ public:
 class GameWorld
 {
 protected:
-	std::random_device rd;
-	std::mt19937 mt;
 	int hiscore;
 	int lastSavedHiscore;
 	Player player;
-	std::list<Platform> platforms;
-	void addPlatform(int x, int y, int w, int no);
+	std::list<std::unique_ptr<IPlatform>> platforms;
 	void saveHiscore();
 	void loadHiscore();
 public:

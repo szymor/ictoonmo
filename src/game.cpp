@@ -18,20 +18,14 @@ using std::ofstream;
 using std::endl;
 using std::cout;
 using std::cerr;
+using std::unique_ptr;
+using std::make_unique;
 
 constexpr char GameWorld::GAMEDIR[];
 constexpr char GameWorld::HISCORE_FILE[];
 
-void GameWorld::addPlatform(int x, int y, int w, int no)
-{
-	Platform platform;
-	platform.cb.x = x;
-	platform.cb.y = y;
-	platform.cb.w = w;
-	platform.cb.h = Platform::DEFAULT_HEIGHT;
-	platform.no = no;
-	platforms.push_front(platform);
-}
+static std::random_device rd;
+static std::mt19937 mt(rd());
 
 void GameWorld::saveHiscore()
 {
@@ -64,7 +58,7 @@ void GameWorld::loadHiscore()
 	}
 }
 
-GameWorld::GameWorld() : mt(rd())
+GameWorld::GameWorld()
 {
 	loadHiscore();
 	reset();
@@ -108,7 +102,7 @@ void GameWorld::process(Uint32 ms)
 	for (auto it = platforms.begin(); it != platforms.end(); ++it)
 	{
 		auto &p = *it;
-		if (player.cb.collides(p.cb))
+		if (player.cb.collides(p->cb))
 		{
 			// going up
 			if (player.vy < 0)
@@ -120,23 +114,23 @@ void GameWorld::process(Uint32 ms)
 			if (player.vy > 0 && player.lastCollidedPlatform != it)
 			{
 				// if collision is not from side, then proceed
-				double cl = player.cb.x > p.cb.x ? player.cb.x : p.cb.x;
-				double cr = (player.cb.x + player.cb.w) < (p.cb.x + p.cb.w) ?
-							(player.cb.x + player.cb.w) : (p.cb.x + p.cb.w);
+				double cl = player.cb.x > p->cb.x ? player.cb.x : p->cb.x;
+				double cr = (player.cb.x + player.cb.w) < (p->cb.x + p->cb.w) ?
+							(player.cb.x + player.cb.w) : (p->cb.x + p->cb.w);
 				double cw = cr - cl;
-				double cu = player.cb.y > p.cb.y ? player.cb.y : p.cb.y;
-				double cd = (player.cb.y + player.cb.h) < (p.cb.y + p.cb.h) ?
-							(player.cb.y + player.cb.h) : (p.cb.y + p.cb.h);
+				double cu = player.cb.y > p->cb.y ? player.cb.y : p->cb.y;
+				double cd = (player.cb.y + player.cb.h) < (p->cb.y + p->cb.h) ?
+							(player.cb.y + player.cb.h) : (p->cb.y + p->cb.h);
 				double ch = cd - cu;
-				if ((cw > ch && (player.cb.y + player.cb.h) < (p.cb.y + p.cb.h)) ||
-					((oldY + player.cb.h) <= p.cb.y))
+				if ((cw > ch && (player.cb.y + player.cb.h) < (p->cb.y + p->cb.h)) ||
+					((oldY + player.cb.h) <= p->cb.y))
 				{
 					player.standing = true;
 					player.vy = 0;
-					player.cb.y = p.cb.y - player.cb.h;
-					if (p.no > player.floorNo)
+					player.cb.y = p->cb.y - player.cb.h;
+					if (p->no > player.floorNo)
 					{
-						player.floorNo = p.no;
+						player.floorNo = p->no;
 						if (player.floorNo > hiscore)
 							hiscore = player.floorNo;
 					}
@@ -160,11 +154,11 @@ void GameWorld::process(Uint32 ms)
 	}
 
 	// pacemaker
-	double pace = sqrt((double)platforms.rbegin()->no) * GameWorld::PACE_COEFFICIENT * ms;
+	double pace = sqrt((double)((*platforms.rbegin())->no)) * GameWorld::PACE_COEFFICIENT * ms;
 	player.cb.y += pace;
 	for (auto &p: platforms)
 	{
-		p.cb.y += pace;
+		p->cb.y += pace;
 	}
 
 	// perspective adjustment
@@ -174,37 +168,38 @@ void GameWorld::process(Uint32 ms)
 		player.cb.y += yDiff;
 		for (auto &p: platforms)
 		{
-			p.cb.y += yDiff;
+			p->cb.y += yDiff;
 		}
 	}
 
 	// platform generation
-	if (platforms.begin()->cb.y > (GameWorld::PLATFORM_DISTANCE - Platform::DEFAULT_HEIGHT))
+	if ((*platforms.begin())->cb.y > (GameWorld::PLATFORM_DISTANCE - IPlatform::DEFAULT_HEIGHT))
 	{
-		int y = platforms.begin()->cb.y - PLATFORM_DISTANCE;
-		int no = platforms.begin()->no + 1;
-		int w = 0;
-		int x = 0;
+		int y = (*platforms.begin())->cb.y - PLATFORM_DISTANCE;
+		int no = (*platforms.begin())->no + 1;
+		unique_ptr<IPlatform> platform;
 		if (no % 100 == 0)
 		{
-			w = SCREEN_WIDTH;
-			x = 0;
+			platform = make_unique<BasicPlatform>(no, y);
+			platform->cb.w = SCREEN_WIDTH;
+			platform->cb.x = 0;
 		}
 		else
 		{
-			std::uniform_int_distribution<int> udw(SCREEN_WIDTH / 6, 2 * SCREEN_WIDTH / 6);
-			w = udw(mt);
-			std::uniform_int_distribution<int> udx(WALL_WIDTH, SCREEN_WIDTH - w - WALL_WIDTH);
-			x = udx(mt);
+			platform = make_unique<MovingPlatform>(no, y);
 		}
-		addPlatform(x, y, w, no);
+		platforms.push_front(std::move(platform));
 	}
 
 	// platform destruction
-	if (platforms.rbegin()->cb.y > SCREEN_HEIGHT)
+	if ((*platforms.rbegin())->cb.y > SCREEN_HEIGHT)
 	{
 		platforms.pop_back();
 	}
+
+	// active platform processing
+	for (auto &p: platforms)
+		p->process(ms);
 }
 
 bool GameWorld::gameFinished()
@@ -216,29 +211,18 @@ void GameWorld::reset()
 {
 	saveHiscore();
 
-	player.cb.x = SCREEN_WIDTH / 2;
-	player.cb.y = SCREEN_HEIGHT - 40;
-	player.cb.w = 16;
-	player.cb.h = 16;
-	player.vx = 0;
-	player.vy = 0;
-	player.ax = 0;
-	player.ay = Player::DEFAULT_ACCELERATION_Y;
-	player.standing = false;
-	player.wannaJump = false;
-	player.floorNo = 0;
-
+	player.reset();
 	platforms.clear();
 	player.lastCollidedPlatform = platforms.end();
-	addPlatform(0, SCREEN_HEIGHT - Platform::DEFAULT_HEIGHT, SCREEN_WIDTH, 0);
+
+	auto base = make_unique<BasicPlatform>(0, SCREEN_HEIGHT - IPlatform::DEFAULT_HEIGHT);
+	base->cb.x = 0;
+	base->cb.w = SCREEN_WIDTH;
+	platforms.push_front(std::move(base));
 	for (int i = 1; i * PLATFORM_DISTANCE < SCREEN_HEIGHT; ++i)
 	{
-		int y = SCREEN_HEIGHT - Platform::DEFAULT_HEIGHT - i * PLATFORM_DISTANCE;
-		std::uniform_int_distribution<int> udw(SCREEN_WIDTH / 6, 2 * SCREEN_WIDTH / 6);
-		int w = udw(mt);
-		std::uniform_int_distribution<int> udx(WALL_WIDTH, SCREEN_WIDTH - w - WALL_WIDTH);
-		int x = udx(mt);
-		addPlatform(x, y, w, i);
+		auto platform = make_unique<BasicPlatform>(i, SCREEN_HEIGHT - IPlatform::DEFAULT_HEIGHT - i * PLATFORM_DISTANCE);
+		platforms.push_front(std::move(platform));
 	}
 }
 
@@ -282,7 +266,7 @@ void GameWorld::draw()
 	SDL_FillRect(screen, &r, foregroundColor);
 
 	for (auto &p: platforms)
-		p.draw();
+		p->draw();
 	player.draw();
 
 	string status = std::to_string(player.floorNo) + "/" + std::to_string(hiscore);
@@ -383,9 +367,77 @@ bool CollisionBox::collides(const CollisionBox &cb)
 		this->y > (cb.y + cb.h));
 }
 
-void Platform::draw()
+BasicPlatform::BasicPlatform(int no, double y)
+{
+	this->no = no;
+	this->cb.y = y;
+	this->cb.h = IPlatform::DEFAULT_HEIGHT;
+	std::uniform_int_distribution<int> udw(SCREEN_WIDTH / 6, 2 * SCREEN_WIDTH / 6);
+	this->cb.w = udw(mt);
+	std::uniform_int_distribution<int> udx(GameWorld::WALL_WIDTH + Player::SIZE / 2, SCREEN_WIDTH - this->cb.w - GameWorld::WALL_WIDTH - Player::SIZE / 2);
+	this->cb.x = udx(mt);
+}
+
+void BasicPlatform::draw()
 {
 	cb.draw();
+}
+
+void BasicPlatform::process(Uint32 ms)
+{
+	(void)ms;
+}
+
+MovingPlatform::MovingPlatform(int no, double y, double freq)
+	: centerx{SCREEN_WIDTH / 2}, spanx{SCREEN_WIDTH / 2}, freq{freq}, t{0.0}
+{
+	this->no = no;
+	this->cb.y = y;
+	this->cb.h = IPlatform::DEFAULT_HEIGHT;
+	std::uniform_int_distribution<int> udw(SCREEN_WIDTH / 6, 2 * SCREEN_WIDTH / 6);
+	this->cb.w = udw(mt);
+	if (0 == freq)
+	{
+		std::uniform_real_distribution<> udf(0.05, 0.2);
+		this->freq = udf(mt);
+	}
+	constexpr double pi = std::acos(-1);
+	std::uniform_real_distribution<> udt(0, 2 * pi);
+	this->t = udt(mt);
+}
+
+void MovingPlatform::draw()
+{
+	cb.draw();
+}
+
+void MovingPlatform::process(Uint32 ms)
+{
+	constexpr double pi = std::acos(-1);
+	t += ms / 1000.0;
+	if (t > (1 / freq))
+		t -= (1 / freq);
+	cb.x = centerx + (spanx / 2) * sin(2*pi*freq*t) - cb.w / 2;
+}
+
+Player::Player()
+{
+	reset();
+}
+
+void Player::reset()
+{
+	cb.x = SCREEN_WIDTH / 2;
+	cb.y = SCREEN_HEIGHT - 40;
+	cb.w = Player::SIZE;
+	cb.h = Player::SIZE;
+	vx = 0;
+	vy = 0;
+	ax = 0;
+	ay = Player::DEFAULT_ACCELERATION_Y;
+	standing = false;
+	wannaJump = false;
+	floorNo = 0;
 }
 
 void Player::draw()
