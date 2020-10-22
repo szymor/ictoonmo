@@ -125,7 +125,7 @@ void GameWorld::process(Uint32 ms)
 				if ((cw > ch && (player.cb.y + player.cb.h) < (p->cb.y + p->cb.h)) ||
 					((oldY + player.cb.h) <= p->cb.y))
 				{
-					player.standing = true;
+					player.standingPlatform = p.get();
 					player.vy = 0;
 					player.cb.y = p->cb.y - player.cb.h;
 					if (p->no > player.floorNo)
@@ -145,10 +145,10 @@ void GameWorld::process(Uint32 ms)
 	}
 	if (player.vy > 0)
 	{
-		player.standing = false;
+		player.standingPlatform = nullptr;
 	}
 
-	if (player.standing && player.wannaJump)
+	if (player.standingPlatform && player.wannaJump)
 	{
 		player.jump();
 	}
@@ -180,13 +180,13 @@ void GameWorld::process(Uint32 ms)
 		unique_ptr<IPlatform> platform;
 		if (no % 100 == 0)
 		{
-			platform = make_unique<BasicPlatform>(no, y);
+			platform = make_unique<BasicPlatform>(this, no, y);
 			platform->cb.w = SCREEN_WIDTH;
 			platform->cb.x = 0;
 		}
 		else
 		{
-			platform = make_unique<MovingPlatform>(no, y);
+			platform = make_unique<MovingPlatform>(this, no, y);
 		}
 		platforms.push_front(std::move(platform));
 	}
@@ -215,13 +215,13 @@ void GameWorld::reset()
 	platforms.clear();
 	player.lastCollidedPlatform = platforms.end();
 
-	auto base = make_unique<BasicPlatform>(0, SCREEN_HEIGHT - IPlatform::DEFAULT_HEIGHT);
+	auto base = make_unique<BasicPlatform>(this, 0, SCREEN_HEIGHT - IPlatform::DEFAULT_HEIGHT);
 	base->cb.x = 0;
 	base->cb.w = SCREEN_WIDTH;
 	platforms.push_front(std::move(base));
 	for (int i = 1; i * PLATFORM_DISTANCE < SCREEN_HEIGHT; ++i)
 	{
-		auto platform = make_unique<BasicPlatform>(i, SCREEN_HEIGHT - IPlatform::DEFAULT_HEIGHT - i * PLATFORM_DISTANCE);
+		auto platform = make_unique<BasicPlatform>(this, i, SCREEN_HEIGHT - IPlatform::DEFAULT_HEIGHT - i * PLATFORM_DISTANCE);
 		platforms.push_front(std::move(platform));
 	}
 }
@@ -325,7 +325,7 @@ void GameWorld::handleEvents()
 						break;
 					case SDLK_SPACE:
 						player.wannaJump = true;
-						if (player.standing)
+						if (player.standingPlatform)
 						{
 							player.jump();
 						}
@@ -367,8 +367,9 @@ bool CollisionBox::collides(const CollisionBox &cb)
 		this->y > (cb.y + cb.h));
 }
 
-BasicPlatform::BasicPlatform(int no, double y)
+BasicPlatform::BasicPlatform(GameWorld *gw, int no, double y)
 {
+	(void)gw;
 	this->no = no;
 	this->cb.y = y;
 	this->cb.h = IPlatform::DEFAULT_HEIGHT;
@@ -388,8 +389,8 @@ void BasicPlatform::process(Uint32 ms)
 	(void)ms;
 }
 
-MovingPlatform::MovingPlatform(int no, double y, double freq)
-	: centerx{SCREEN_WIDTH / 2}, spanx{SCREEN_WIDTH / 2}, freq{freq}, t{0.0}
+MovingPlatform::MovingPlatform(GameWorld *gw, int no, double y, double freq)
+	: gw{gw}, centerx{SCREEN_WIDTH / 2}, spanx{SCREEN_WIDTH / 2}, freq{freq}, t{0.0}
 {
 	this->no = no;
 	this->cb.y = y;
@@ -417,7 +418,11 @@ void MovingPlatform::process(Uint32 ms)
 	t += ms / 1000.0;
 	if (t > (1 / freq))
 		t -= (1 / freq);
-	cb.x = centerx + (spanx / 2) * sin(2*pi*freq*t) - cb.w / 2;
+	double newx = centerx + (spanx / 2) * sin(2*pi*freq*t) - cb.w / 2;
+	double delta = newx - cb.x;
+	cb.x = newx;
+	if (this == gw->player.standingPlatform)
+		gw->player.cb.x += delta;
 }
 
 Player::Player()
@@ -435,7 +440,7 @@ void Player::reset()
 	vy = 0;
 	ax = 0;
 	ay = Player::DEFAULT_ACCELERATION_Y;
-	standing = false;
+	standingPlatform = nullptr;
 	wannaJump = false;
 	floorNo = 0;
 }
@@ -448,6 +453,6 @@ void Player::draw()
 
 void Player::jump()
 {
-	standing = false;
+	standingPlatform = nullptr;
 	vy = -JUMP_POWER - fabs(vx * vx * JUMP_COEFFICIENT);
 }

@@ -8,6 +8,8 @@
 
 #include "gfx.hpp"
 
+class GameWorld;
+
 class CollisionBox
 {
 public:
@@ -33,7 +35,7 @@ public:
 class BasicPlatform : public IPlatform
 {
 public:
-	explicit BasicPlatform(int no, double y);
+	explicit BasicPlatform(GameWorld *gw, int no, double y);
 	void draw() override;
 	void process(Uint32 ms) override;
 };
@@ -41,10 +43,11 @@ public:
 class MovingPlatform : public IPlatform
 {
 public:
-	explicit MovingPlatform(int no, double y, double freq = 0);
+	explicit MovingPlatform(GameWorld *gw, int no, double y, double freq = 0);
 	void draw() override;
 	void process(Uint32 ms) override;
 private:
+	GameWorld *gw;
 	double centerx;
 	double spanx;
 	double freq;
@@ -65,7 +68,7 @@ public:
 	double vy;
 	double ax;
 	double ay;
-	bool standing;
+	IPlatform *standingPlatform;
 	bool wannaJump;
 	int floorNo;
 	std::list<std::unique_ptr<IPlatform>>::iterator lastCollidedPlatform;
@@ -80,8 +83,6 @@ class GameWorld
 protected:
 	int hiscore;
 	int lastSavedHiscore;
-	Player player;
-	std::list<std::unique_ptr<IPlatform>> platforms;
 	void saveHiscore();
 	void loadHiscore();
 public:
@@ -92,6 +93,8 @@ public:
 	static constexpr Uint32 RESET_TIMEOUT = 2000;
 	static constexpr char GAMEDIR[] = ".ictoonmo";
 	static constexpr char HISCORE_FILE[] = "hiscore.dat";
+	Player player;
+	std::list<std::unique_ptr<IPlatform>> platforms;
 	GameWorld();
 	~GameWorld();
 	void draw();
