@@ -186,10 +186,88 @@ void GameWorld::process(Uint32 ms)
 			platform = make_unique<BasicPlatform>(this, no, y);
 			platform->cb.w = SCREEN_WIDTH;
 			platform->cb.x = 0;
+			BasicPlatform *raw = static_cast<BasicPlatform*>(platform.get());
+			if (100 == no)
+				raw->label = "desert";
+			else if (200 == no)
+				raw->label = "volcano";
+			else if (300 == no)
+				raw->label = "sky";
 		}
 		else
 		{
-			platform = make_unique<DisappearingPlatform>(this, no, y);
+			// meadow
+			if (no < 30)
+			{
+				platform = make_unique<FriendlyPlatform>(this, no, y);
+			}
+			else if (no < 100)
+			{
+				std::uniform_int_distribution<int> roll(1, 100);
+				int chance = roll(mt);
+				if (chance <= 50)
+				{
+					platform = make_unique<FriendlyPlatform>(this, no, y);
+				}
+				else
+				{
+					platform = make_unique<BasicPlatform>(this, no, y);
+				}
+			}
+			// desert
+			else if (no < 200)
+			{
+				std::uniform_int_distribution<int> roll(1, 100);
+				int chance = roll(mt);
+				if (chance <= 50)
+				{
+					platform = make_unique<EvilPlatform>(this, no, y);
+				}
+				else
+				{
+					platform = make_unique<BasicPlatform>(this, no, y);
+				}
+			}
+			// volcano
+			else if (no < 300)
+			{
+				std::uniform_int_distribution<int> roll(1, 100);
+				int chance = roll(mt);
+				if (chance <= 50)
+				{
+					platform = make_unique<DisappearingPlatform>(this, no, y);
+				}
+				else
+				{
+					platform = make_unique<BasicPlatform>(this, no, y);
+				}
+			}
+			// sky
+			else
+			{
+				std::uniform_int_distribution<int> roll(1, 100);
+				int chance = roll(mt);
+				if (chance <= 30)
+				{
+					platform = make_unique<MovingPlatform>(this, no, y);
+				}
+				else if (chance <= 40)
+				{
+					platform = make_unique<EvilPlatform>(this, no, y);
+				}
+				else if (chance <= 50)
+				{
+					platform = make_unique<FriendlyPlatform>(this, no, y);
+				}
+				else if (chance <= 70)
+				{
+					platform = make_unique<DisappearingPlatform>(this, no, y);
+				}
+				else
+				{
+					platform = make_unique<BasicPlatform>(this, no, y);
+				}
+			}
 		}
 		platforms.push_front(std::move(platform));
 	}
@@ -226,10 +304,11 @@ void GameWorld::reset()
 	auto base = make_unique<BasicPlatform>(this, 0, SCREEN_HEIGHT - IPlatform::DEFAULT_HEIGHT);
 	base->cb.x = 0;
 	base->cb.w = SCREEN_WIDTH;
+	base->label = "meadow";
 	platforms.push_front(std::move(base));
 	for (int i = 1; i * PLATFORM_DISTANCE < SCREEN_HEIGHT; ++i)
 	{
-		auto platform = make_unique<BasicPlatform>(this, i, SCREEN_HEIGHT - IPlatform::DEFAULT_HEIGHT - i * PLATFORM_DISTANCE);
+		auto platform = make_unique<FriendlyPlatform>(this, i, SCREEN_HEIGHT - IPlatform::DEFAULT_HEIGHT - i * PLATFORM_DISTANCE);
 		platforms.push_front(std::move(platform));
 	}
 }
@@ -390,6 +469,17 @@ BasicPlatform::BasicPlatform(GameWorld *gw, int no, double y)
 void BasicPlatform::draw()
 {
 	cb.draw();
+	if (label != "")
+	{
+		int posx = cb.x + GameWorld::WALL_WIDTH + 2;
+		int posy = cb.y + 2;
+		psp_change_font(4);
+		if (posy > 0 && posy < (SCREEN_HEIGHT - psp_font_height))
+		{
+			psp_sdl_print(posx, posy, label.c_str(), backgroundColor);
+		}
+		psp_change_font(2);
+	}
 }
 
 void BasicPlatform::process(Uint32 ms)
@@ -430,6 +520,61 @@ void DisappearingPlatform::process(Uint32 ms)
 		if (t > maxt)
 		{
 			deleteFlag = true;
+		}
+	}
+}
+
+FriendlyPlatform::FriendlyPlatform(GameWorld *gw, int no, double y)
+	: BasicPlatform(gw, no, y)
+{
+}
+
+void FriendlyPlatform::process(Uint32 ms)
+{
+	if (this == gw->player.standingPlatform)
+	{
+		if (gw->player.cb.x < cb.x - Player::SIZE / 2)
+		{
+			double dx = cb.x - gw->player.cb.x;
+			cb.x -= 5.0 * dx * ms / 1000.0;
+		}
+		else if (gw->player.cb.x + gw->player.cb.w > cb.x + cb.w + Player::SIZE / 2)
+		{
+			double dx = (gw->player.cb.x + gw->player.cb.w) - (cb.x + cb.w);
+			cb.x += 5.0 * dx * ms / 1000.0;
+		}
+	}
+	if ((cb.y > SCREEN_HEIGHT - (GameWorld::PLATFORM_DISTANCE + IPlatform::DEFAULT_HEIGHT)) &&
+		(cb.y > gw->player.cb.y) &&
+		(gw->player.cb.y > SCREEN_HEIGHT / 2))
+	{
+		double center = cb.x + cb.w / 2;
+		double pcenter = gw->player.cb.x + gw->player.cb.w / 2;
+		if (gw->player.vy > 300.0)
+		{
+			cb.x += 10.0 * (pcenter - center) * ms / 1000.0;
+		}
+	}
+}
+
+EvilPlatform::EvilPlatform(GameWorld *gw, int no, double y)
+	: BasicPlatform(gw, no, y)
+{
+}
+
+void EvilPlatform::process(Uint32 ms)
+{
+	if (this == gw->player.standingPlatform)
+	{
+		if (gw->player.cb.x < cb.x - Player::SIZE / 4)
+		{
+			double dx = cb.x - gw->player.cb.x;
+			cb.x += 20.0 * dx * ms / 1000.0;
+		}
+		else if (gw->player.cb.x + gw->player.cb.w > cb.x + cb.w + Player::SIZE / 4)
+		{
+			double dx = (gw->player.cb.x + gw->player.cb.w) - (cb.x + cb.w);
+			cb.x -= 20.0 * dx * ms / 1000.0;
 		}
 	}
 }

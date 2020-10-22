@@ -60,13 +60,13 @@ namespace
 		 { (char*)"16x22", psp_font_lat1_16x22, 16, 22 }
 	};
 
-	unsigned char *psp_font = psp_font_lat1_8x8;
-	int            psp_font_width  = 8;
-	int            psp_font_height = 8;
-
 	void psp_sdl_put_char(int x, int y, Uint32 color, Uint32 bgcolor, uchar c, int drawfg, int drawbg);
 	auto *psp_sdl_get_vram_addr(uint x, uint y);
 }
+
+unsigned char *psp_font = psp_font_lat1_8x8;
+int            psp_font_width  = 8;
+int            psp_font_height = 8;
 
 SDL_Surface *screen = nullptr;
 Uint32 foregroundColor;
@@ -124,6 +124,16 @@ bool frameLimiter()
 #endif
 
 	return true;
+}
+
+void psp_change_font(int id)
+{
+	if (id < 0 || id >= GFX_MAX_FONT)
+		return;
+
+	psp_font = psp_all_fonts[id].font;
+	psp_font_width  = psp_all_fonts[id].width;
+	psp_font_height = psp_all_fonts[id].height;
 }
 
 void psp_sdl_print(int x, int y, const char *str, Uint32 color)

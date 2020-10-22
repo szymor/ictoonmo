@@ -1,6 +1,7 @@
 #ifndef _H_GAME
 #define _H_GAME
 
+#include <string>
 #include <memory>
 #include <random>
 #include <list>
@@ -36,6 +37,7 @@ public:
 class BasicPlatform : public IPlatform
 {
 public:
+	std::string label = "";
 	explicit BasicPlatform(GameWorld *gw, int no, double y);
 	void draw() override;
 	void process(Uint32 ms) override;
@@ -53,6 +55,20 @@ public:
 private:
 	double t;
 	double maxt;
+};
+
+class FriendlyPlatform : public BasicPlatform
+{
+public:
+	explicit FriendlyPlatform(GameWorld *gw, int no, double y);
+	void process(Uint32 ms) override;
+};
+
+class EvilPlatform : public BasicPlatform
+{
+public:
+	explicit EvilPlatform(GameWorld *gw, int no, double y);
+	void process(Uint32 ms) override;
 };
 
 class MovingPlatform : public IPlatform
