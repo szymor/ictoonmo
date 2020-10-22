@@ -36,7 +36,8 @@ extern int            psp_font_width;
 extern int            psp_font_height;
 
 extern SDL_Surface *screen;
-extern Uint32 foregroundColor;
+extern Uint32 primaryColor;
+extern Uint32 secondaryColor;
 extern Uint32 backgroundColor;
 extern Uint32 playerColor;
 extern Uint32 playerNegativeColor;

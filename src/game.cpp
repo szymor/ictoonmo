@@ -158,6 +158,7 @@ void GameWorld::process(Uint32 ms)
 
 	// pacemaker
 	double pace = sqrt((double)((*platforms.rbegin())->no)) * GameWorld::PACE_COEFFICIENT * ms;
+	travelledDistance += pace;
 	player.cb.y += pace;
 	for (auto &p: platforms)
 	{
@@ -169,6 +170,7 @@ void GameWorld::process(Uint32 ms)
 	if (yDiff > 0)
 	{
 		player.cb.y += yDiff;
+		travelledDistance += yDiff;
 		for (auto &p: platforms)
 		{
 			p->cb.y += yDiff;
@@ -295,6 +297,7 @@ bool GameWorld::gameFinished()
 
 void GameWorld::reset()
 {
+	travelledDistance = 0.0;
 	saveHiscore();
 
 	player.reset();
@@ -346,11 +349,60 @@ void GameWorld::printScore()
 
 void GameWorld::draw()
 {
-	SDL_FillRect(screen, NULL, backgroundColor);
+	constexpr SDL_Color green = {.r = 144, .g = 255, .b = 144};
+	constexpr SDL_Color yellow = {.r = 255, .g = 255, .b = 144};
+	constexpr SDL_Color red = {.r = 255, .g = 144, .b = 144};
+	constexpr SDL_Color blue = {.r = 144, .g = 144, .b = 255};
+	constexpr SDL_Color gray = {.r = 224, .g = 224, .b = 224};
+	SDL_Color fc = {.r = 0, .g = 0, .b = 0};
+	Uint32 finalColor;
+	if (travelledDistance < PLATFORM_DISTANCE * 100)
+	{
+		double ratio = travelledDistance / (PLATFORM_DISTANCE * 100);
+		fc.r = (1 - ratio) * green.r + ratio * yellow.r;
+		fc.g = (1 - ratio) * green.g + ratio * yellow.g;
+		fc.b = (1 - ratio) * green.b + ratio * yellow.b;
+	}
+	else if (travelledDistance < PLATFORM_DISTANCE * 200)
+	{
+		double ratio = (travelledDistance - PLATFORM_DISTANCE * 100) / (PLATFORM_DISTANCE * 100);
+		fc.r = (1 - ratio) * yellow.r + ratio * red.r;
+		fc.g = (1 - ratio) * yellow.g + ratio * red.g;
+		fc.b = (1 - ratio) * yellow.b + ratio * red.b;
+	}
+	else if (travelledDistance < PLATFORM_DISTANCE * 300)
+	{
+		double ratio = (travelledDistance - PLATFORM_DISTANCE * 200) / (PLATFORM_DISTANCE * 100);
+		fc.r = (1 - ratio) * red.r + ratio * blue.r;
+		fc.g = (1 - ratio) * red.g + ratio * blue.g;
+		fc.b = (1 - ratio) * red.b + ratio * blue.b;
+	}
+	else if (travelledDistance < PLATFORM_DISTANCE * 400)
+	{
+		double ratio = (travelledDistance - PLATFORM_DISTANCE * 300) / (PLATFORM_DISTANCE * 100);
+		fc.r = (1 - ratio) * blue.r + ratio * gray.r;
+		fc.g = (1 - ratio) * blue.g + ratio * gray.g;
+		fc.b = (1 - ratio) * blue.b + ratio * gray.b;
+	}
+	else
+	{
+		fc = gray;
+	}
+	// dark mode
+	if (0 == secondaryColor)
+	{
+		fc.r = 255 - fc.r;
+		fc.g = 255 - fc.g;
+		fc.b = 255 - fc.b;
+	}
+	finalColor = SDL_MapRGB(screen->format, fc.r, fc.g, fc.b);
+	SDL_FillRect(screen, NULL, finalColor);
+	backgroundColor = finalColor;
+
 	SDL_Rect r = {.x = 0, .y = 0, .w = WALL_WIDTH, .h = SCREEN_HEIGHT};
-	SDL_FillRect(screen, &r, foregroundColor);
+	SDL_FillRect(screen, &r, primaryColor);
 	r.x = SCREEN_WIDTH - WALL_WIDTH;
-	SDL_FillRect(screen, &r, foregroundColor);
+	SDL_FillRect(screen, &r, primaryColor);
 
 	for (auto &p: platforms)
 		p->draw();
@@ -359,15 +411,15 @@ void GameWorld::draw()
 	string status = std::to_string(player.floorNo) + "/" + std::to_string(hiscore);
 	int xpos = SCREEN_WIDTH - (status.length() + 1) * 8;
 	int ypos = 4;
-	psp_sdl_print(xpos, ypos, status.c_str(), foregroundColor);
+	psp_sdl_print(xpos, ypos, status.c_str(), primaryColor);
 	SDL_Flip(screen);
 }
 
 void GameWorld::switchColors()
 {
-	Uint32 temp = foregroundColor;
-	foregroundColor = backgroundColor;
-	backgroundColor = temp;
+	Uint32 temp = primaryColor;
+	primaryColor = secondaryColor;
+	secondaryColor = temp;
 	temp = playerColor;
 	playerColor = playerNegativeColor;
 	playerNegativeColor = temp;
@@ -443,7 +495,7 @@ void GameWorld::handleEvents()
 void CollisionBox::draw()
 {
 	SDL_Rect r = {.x = (Sint16)x, .y = (Sint16)y, .w = (Uint16)w, .h = (Uint16)h};
-	SDL_FillRect(screen, &r, foregroundColor);
+	SDL_FillRect(screen, &r, primaryColor);
 }
 
 bool CollisionBox::collides(const CollisionBox &cb)
@@ -476,7 +528,7 @@ void BasicPlatform::draw()
 		psp_change_font(4);
 		if (posy > 0 && posy < (SCREEN_HEIGHT - psp_font_height))
 		{
-			psp_sdl_print(posx, posy, label.c_str(), backgroundColor);
+			psp_sdl_print(posx, posy, label.c_str(), secondaryColor);
 		}
 		psp_change_font(2);
 	}
@@ -501,7 +553,7 @@ void DisappearingPlatform::draw()
 {
 	Uint8 br, bg, bb, fr, fg, fb;
 	SDL_GetRGB(backgroundColor, screen->format, &br, &bg, &bb);
-	SDL_GetRGB(foregroundColor, screen->format, &fr, &fg, &fb);
+	SDL_GetRGB(primaryColor, screen->format, &fr, &fg, &fb);
 	double ratio = t / maxt;
 	Uint8 r = ratio * br + (1 - ratio) * fr;
 	Uint8 g = ratio * bg + (1 - ratio) * fg;

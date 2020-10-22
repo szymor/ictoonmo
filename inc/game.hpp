@@ -112,8 +112,9 @@ public:
 class GameWorld
 {
 protected:
-	int hiscore;
-	int lastSavedHiscore;
+	double travelledDistance = 0.0;
+	int hiscore = 0;
+	int lastSavedHiscore = 0;
 	void saveHiscore();
 	void loadHiscore();
 public:
