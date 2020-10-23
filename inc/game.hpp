@@ -130,7 +130,6 @@ public:
 	GameWorld();
 	~GameWorld();
 	void draw();
-	void switchColors();
 	void handleEvents();
 	void process(Uint32 ms);
 	bool gameFinished();

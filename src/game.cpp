@@ -401,8 +401,7 @@ void GameWorld::draw()
 	{
 		fc = gray;
 	}
-	// dark mode
-	if (0 == secondaryColor)
+	if (darkMode)
 	{
 		fc.r = 255 - fc.r;
 		fc.g = 255 - fc.g;
@@ -426,16 +425,6 @@ void GameWorld::draw()
 	int ypos = 4;
 	psp_sdl_print(xpos, ypos, status.c_str(), primaryColor);
 	SDL_Flip(screen);
-}
-
-void GameWorld::switchColors()
-{
-	Uint32 temp = primaryColor;
-	primaryColor = secondaryColor;
-	secondaryColor = temp;
-	temp = playerColor;
-	playerColor = playerNegativeColor;
-	playerNegativeColor = temp;
 }
 
 void GameWorld::handleEvents()
@@ -659,7 +648,7 @@ MovingPlatform::MovingPlatform(GameWorld *gw, int no, double y, double freq)
 		std::uniform_real_distribution<> udf(0.05, 0.2);
 		this->freq = udf(mt);
 	}
-	constexpr double pi = std::acos(-1);
+	const double pi = std::acos(-1);
 	std::uniform_real_distribution<> udt(0, 2 * pi);
 	this->t = udt(mt);
 }
@@ -671,7 +660,7 @@ void MovingPlatform::draw()
 
 void MovingPlatform::process(Uint32 ms)
 {
-	constexpr double pi = std::acos(-1);
+	const double pi = std::acos(-1);
 	t += ms / 1000.0;
 	if (t > (1 / freq))
 		t -= (1 / freq);

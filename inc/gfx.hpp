@@ -36,12 +36,14 @@ extern int            psp_font_width;
 extern int            psp_font_height;
 
 extern SDL_Surface *screen;
+extern bool darkMode;
 extern Uint32 primaryColor;
 extern Uint32 secondaryColor;
 extern Uint32 backgroundColor;
 extern Uint32 playerColor;
 extern Uint32 playerNegativeColor;
 
+void switchColors();
 bool frameLimiter();
 void psp_change_font(int id);
 void psp_sdl_print(int x, int y, const char *str, Uint32 color);

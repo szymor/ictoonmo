@@ -69,11 +69,23 @@ int            psp_font_width  = 8;
 int            psp_font_height = 8;
 
 SDL_Surface *screen = nullptr;
+bool darkMode;
 Uint32 primaryColor;
 Uint32 secondaryColor;
 Uint32 backgroundColor;
 Uint32 playerColor;
 Uint32 playerNegativeColor;
+
+void switchColors()
+{
+	darkMode = !darkMode;
+	Uint32 temp = primaryColor;
+	primaryColor = secondaryColor;
+	secondaryColor = temp;
+	temp = playerColor;
+	playerColor = playerNegativeColor;
+	playerNegativeColor = temp;
+}
 
 SDLGuard::SDLGuard()
 {
@@ -87,6 +99,7 @@ SDLGuard::SDLGuard()
 	SDL_WM_SetCaption("ictoonmo", NULL);
 	SDL_ShowCursor(SDL_DISABLE);
 
+	darkMode = false;
 	primaryColor = SDL_MapRGB(screen->format, 0, 0, 0);
 	secondaryColor = SDL_MapRGB(screen->format, 255, 255, 255);
 	playerColor = SDL_MapRGB(screen->format, 0, 0, 255);

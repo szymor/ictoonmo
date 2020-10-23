@@ -5,7 +5,7 @@ SRC = src/main.cpp src/gfx.cpp src/game.cpp
 OBJ = $(SRC:.cpp=.o)
 DEP = $(SRC:.cpp=.d)
 FLAGS = -s WASM=0 -s ASYNCIFY -s DISABLE_EXCEPTION_CATCHING=0
-CFLAGS = $(FLAGS) -std=c++17 -Iinc
+CFLAGS = $(FLAGS) -std=c++17 -Iinc -O2
 LDFLAGS = $(FLAGS) $(shell pkg-config --libs sdl)
 CC = em++
 
