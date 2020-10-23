@@ -33,6 +33,6 @@ src/%.d: src/%.cpp
 	rm -f $@.$$$$
 
 clean:
-	rm -rf $(PROJECT) $(OBJ) $(DEP) src/*.d.*
+	rm -rf $(OPKG) $(PROJECT) $(OBJ) $(DEP) src/*.d.*
 
 -include $(DEP)

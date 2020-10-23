@@ -245,7 +245,7 @@ void GameWorld::process(Uint32 ms)
 				}
 			}
 			// sky
-			else
+			else if (no < 400)
 			{
 				std::uniform_int_distribution<int> roll(1, 100);
 				int chance = roll(mt);
@@ -264,6 +264,19 @@ void GameWorld::process(Uint32 ms)
 				else if (chance <= 70)
 				{
 					platform = make_unique<DisappearingPlatform>(this, no, y);
+				}
+				else
+				{
+					platform = make_unique<BasicPlatform>(this, no, y);
+				}
+			}
+			else
+			{
+				std::uniform_int_distribution<int> roll(1, 100);
+				int chance = roll(mt);
+				if (chance <= 50)
+				{
+					platform = make_unique<MovingPlatform>(this, no, y);
 				}
 				else
 				{
@@ -618,12 +631,14 @@ void EvilPlatform::process(Uint32 ms)
 {
 	if (this == gw->player.standingPlatform)
 	{
-		if (gw->player.cb.x < cb.x - Player::SIZE / 4)
+		if ((gw->player.cb.x < cb.x - Player::SIZE / 4) &&
+			(gw->player.vx <= 0))
 		{
 			double dx = cb.x - gw->player.cb.x;
 			cb.x += 20.0 * dx * ms / 1000.0;
 		}
-		else if (gw->player.cb.x + gw->player.cb.w > cb.x + cb.w + Player::SIZE / 4)
+		else if ((gw->player.cb.x + gw->player.cb.w > cb.x + cb.w + Player::SIZE / 4) &&
+				(gw->player.vx >= 0))
 		{
 			double dx = (gw->player.cb.x + gw->player.cb.w) - (cb.x + cb.w);
 			cb.x -= 20.0 * dx * ms / 1000.0;
