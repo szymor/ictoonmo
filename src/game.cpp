@@ -94,7 +94,7 @@ void GameWorld::process(Uint32 ms)
 	player.vx += (player.ax - Player::FRICTION * player.vx) * msd;
 	player.vy += player.ay * msd;
 
-	if (player.vy <= 0)
+	if (player.vy < 0)
 	{
 		player.lastCollidedPlatform = platforms.end();
 	}
@@ -104,8 +104,10 @@ void GameWorld::process(Uint32 ms)
 		auto &p = *it;
 		if (player.cb.collides(p->cb))
 		{
-			// going up
-			if (player.vy < 0)
+			// going up or standing
+			if (player.vy < 0 ||
+				(player.standingPlatform &&
+				player.standingPlatform != p.get()))
 			{
 				player.lastCollidedPlatform = it;
 			}
@@ -143,7 +145,11 @@ void GameWorld::process(Uint32 ms)
 					player.lastCollidedPlatform = it;
 				}
 			}
-			break;
+		}
+		else
+		{
+			if (player.lastCollidedPlatform == it)
+				player.lastCollidedPlatform = platforms.end();
 		}
 	}
 	if (player.vy > 0)
@@ -299,7 +305,13 @@ void GameWorld::process(Uint32 ms)
 	for (auto i = platforms.begin(); i != platforms.end(); ++i)
 	{
 		if ((*i)->deleteFlag)
+		{
+			if (player.standingPlatform == (*i).get())
+				player.standingPlatform = nullptr;
+			if (player.lastCollidedPlatform == i)
+				player.lastCollidedPlatform = platforms.end();
 			i = platforms.erase(i);
+		}
 	}
 }
 
@@ -324,6 +336,12 @@ void GameWorld::reset()
 	platforms.push_front(std::move(base));
 	for (int i = 1; i * PLATFORM_DISTANCE < SCREEN_HEIGHT; ++i)
 	{
+		if (1 == i && hiscore >= 500)
+		{
+			auto platform = make_unique<ElevatorPlatform>(this, i, SCREEN_HEIGHT - IPlatform::DEFAULT_HEIGHT - i * PLATFORM_DISTANCE);
+			platforms.push_front(std::move(platform));
+			continue;
+		}
 		auto platform = make_unique<FriendlyPlatform>(this, i, SCREEN_HEIGHT - IPlatform::DEFAULT_HEIGHT - i * PLATFORM_DISTANCE);
 		platforms.push_front(std::move(platform));
 	}
@@ -632,6 +650,50 @@ void EvilPlatform::process(Uint32 ms)
 			double dx = (gw->player.cb.x + gw->player.cb.w) - (cb.x + cb.w);
 			cb.x -= 20.0 * dx * ms / 1000.0;
 		}
+	}
+}
+
+ElevatorPlatform::ElevatorPlatform(GameWorld *gw, int no, double y)
+	: BasicPlatform(gw, no, y), ay(0), vy(0)
+{
+}
+
+void ElevatorPlatform::draw()
+{
+	Uint32 finalColor;
+	if (darkMode)
+		finalColor = SDL_MapRGB(screen->format, 0, 255, 255);
+	else
+		finalColor = SDL_MapRGB(screen->format, 255, 0, 0);
+
+	SDL_Rect rect = {.x = (Sint16)cb.x, .y = (Sint16)cb.y, .w = (Uint16)cb.w, .h = (Uint16)cb.h};
+	SDL_FillRect(screen, &rect, finalColor);
+}
+
+void ElevatorPlatform::process(Uint32 ms)
+{
+	if (this == gw->player.standingPlatform)
+	{
+		ay = -100.0;
+	}
+	else
+	{
+		ay = 100.0;
+	}
+	vy += ay * ms / 1000.0;
+	if (vy > 0)
+		vy = 0;
+	if (vy < -MAX_SPEED)
+		vy = -MAX_SPEED;
+	double delta = vy * ms / 1000.0;
+	cb.y += delta;
+	if (this == gw->player.standingPlatform)
+	{
+		gw->player.cb.y += delta;
+	}
+	if (cb.y < -SCREEN_HEIGHT || (*(gw->platforms.begin()))->no > 401)
+	{
+		deleteFlag = true;
 	}
 }
 

@@ -71,6 +71,18 @@ public:
 	void process(Uint32 ms) override;
 };
 
+class ElevatorPlatform : public BasicPlatform
+{
+public:
+	static constexpr double MAX_SPEED = 800.0;
+	explicit ElevatorPlatform(GameWorld *gw, int no, double y);
+	void draw() override;
+	void process(Uint32 ms) override;
+private:
+	double ay;
+	double vy;
+};
+
 class MovingPlatform : public IPlatform
 {
 public:
