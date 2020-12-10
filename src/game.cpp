@@ -229,7 +229,7 @@ void GameWorld::process(Uint32 ms)
 				int chance = roll(mt);
 				if (chance <= 50)
 				{
-					platform = make_unique<EvilPlatform>(this, no, y);
+					platform = make_unique<EvasivePlatform>(this, no, y);
 				}
 				else
 				{
@@ -261,7 +261,7 @@ void GameWorld::process(Uint32 ms)
 				}
 				else if (chance <= 40)
 				{
-					platform = make_unique<EvilPlatform>(this, no, y);
+					platform = make_unique<EvasivePlatform>(this, no, y);
 				}
 				else if (chance <= 50)
 				{
@@ -629,12 +629,12 @@ void FriendlyPlatform::process(Uint32 ms)
 	}
 }
 
-EvilPlatform::EvilPlatform(GameWorld *gw, int no, double y)
+EvasivePlatform::EvasivePlatform(GameWorld *gw, int no, double y)
 	: BasicPlatform(gw, no, y)
 {
 }
 
-void EvilPlatform::process(Uint32 ms)
+void EvasivePlatform::process(Uint32 ms)
 {
 	if (this == gw->player.standingPlatform)
 	{

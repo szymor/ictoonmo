@@ -64,10 +64,10 @@ public:
 	void process(Uint32 ms) override;
 };
 
-class EvilPlatform : public BasicPlatform
+class EvasivePlatform : public BasicPlatform
 {
 public:
-	explicit EvilPlatform(GameWorld *gw, int no, double y);
+	explicit EvasivePlatform(GameWorld *gw, int no, double y);
 	void process(Uint32 ms) override;
 };
 
