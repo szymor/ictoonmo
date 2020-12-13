@@ -177,18 +177,6 @@ void GameWorld::process(Uint32 ms)
 		p->cb.y += pace;
 	}
 
-	// perspective adjustment
-	int yDiff = SCREEN_HEIGHT / 6 - player.cb.y;
-	if (yDiff > 0)
-	{
-		player.cb.y += yDiff;
-		travelledDistance += yDiff;
-		for (auto &p: platforms)
-		{
-			p->cb.y += yDiff;
-		}
-	}
-
 	// platform generation
 	if ((*platforms.begin())->cb.y > (GameWorld::PLATFORM_DISTANCE - IPlatform::DEFAULT_HEIGHT))
 	{
@@ -317,6 +305,18 @@ void GameWorld::process(Uint32 ms)
 			if (player.lastCollidedPlatform == i)
 				player.lastCollidedPlatform = platforms.end();
 			i = platforms.erase(i);
+		}
+	}
+
+	// perspective adjustment
+	int yDiff = SCREEN_HEIGHT / 6 - player.cb.y;
+	if (yDiff > 0)
+	{
+		player.cb.y += yDiff;
+		travelledDistance += yDiff;
+		for (auto &p: platforms)
+		{
+			p->cb.y += yDiff;
 		}
 	}
 }
