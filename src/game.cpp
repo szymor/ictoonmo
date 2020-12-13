@@ -233,7 +233,11 @@ void GameWorld::process(Uint32 ms)
 			{
 				std::uniform_int_distribution<int> roll(1, 100);
 				int chance = roll(mt);
-				if (chance <= 50)
+				if (chance <= 20)
+				{
+					platform = make_unique<RestlessPlatform>(this, no, y);
+				}
+				else if (chance <= 70)
 				{
 					platform = make_unique<EvasivePlatform>(this, no, y);
 				}
@@ -265,15 +269,11 @@ void GameWorld::process(Uint32 ms)
 				{
 					platform = make_unique<MovingPlatform>(this, no, y);
 				}
-				else if (chance <= 40)
+				else if (chance <= 50)
 				{
 					platform = make_unique<EvasivePlatform>(this, no, y);
 				}
-				else if (chance <= 50)
-				{
-					platform = make_unique<FriendlyPlatform>(this, no, y);
-				}
-				else if (chance <= 70)
+				else if (chance <= 80)
 				{
 					platform = make_unique<DisappearingPlatform>(this, no, y);
 				}
@@ -342,11 +342,16 @@ void GameWorld::reset()
 	platforms.push_front(std::move(base));
 	for (int i = 1; i * PLATFORM_DISTANCE < SCREEN_HEIGHT; ++i)
 	{
-		if (1 == i && hiscore >= 500)
+		if (1 == i && hiscore >= 600)
 		{
-			auto platform = make_unique<ElevatorPlatform>(this, i, SCREEN_HEIGHT - IPlatform::DEFAULT_HEIGHT - i * PLATFORM_DISTANCE);
-			platforms.push_front(std::move(platform));
-			continue;
+			std::uniform_int_distribution<int> roll(1, 100);
+			int chance = roll(mt);
+			if (chance > 90)
+			{
+				auto platform = make_unique<ElevatorPlatform>(this, i, SCREEN_HEIGHT - IPlatform::DEFAULT_HEIGHT - i * PLATFORM_DISTANCE);
+				platforms.push_front(std::move(platform));
+				continue;
+			}
 		}
 		auto platform = make_unique<FriendlyPlatform>(this, i, SCREEN_HEIGHT - IPlatform::DEFAULT_HEIGHT - i * PLATFORM_DISTANCE);
 		platforms.push_front(std::move(platform));
