@@ -139,6 +139,12 @@ void GameWorld::process(Uint32 ms)
 						if (player.floorNo > hiscore)
 							hiscore = player.floorNo;
 					}
+					SpringPlatform *sp = dynamic_cast<SpringPlatform*>(p.get());
+					if (sp)
+					{
+						player.standingPlatform = nullptr;
+						player.vy = -Player::JUMP_POWER * 2.0;
+					}
 				}
 				else
 				{
@@ -653,6 +659,30 @@ void EvasivePlatform::process(Uint32 ms)
 	}
 }
 
+RestlessPlatform::RestlessPlatform(GameWorld *gw, int no, double y)
+	: BasicPlatform(gw, no, y), targetx(cb.x)
+{
+		std::uniform_real_distribution<> dist(0.5, 2.0);
+		t = dist(mt);
+}
+
+void RestlessPlatform::process(Uint32 ms)
+{
+	t -= ms / 1000.0;
+	if (t < 0.0)
+	{
+		std::uniform_real_distribution<> dist(0.5, 2.0);
+		t = dist(mt);
+		std::uniform_real_distribution<> pos(GameWorld::WALL_WIDTH, SCREEN_WIDTH - GameWorld::WALL_WIDTH - cb.w);
+		targetx = pos(mt);
+	}
+	double dx = targetx - cb.x;
+	double delta = 10.0 * dx * ms / 1000.0;
+	cb.x += delta;
+	if (this == gw->player.standingPlatform)
+		gw->player.cb.x += delta;
+}
+
 ElevatorPlatform::ElevatorPlatform(GameWorld *gw, int no, double y)
 	: BasicPlatform(gw, no, y), ay(0), vy(0)
 {
@@ -695,6 +725,11 @@ void ElevatorPlatform::process(Uint32 ms)
 	{
 		deleteFlag = true;
 	}
+}
+
+SpringPlatform::SpringPlatform(GameWorld *gw, int no, double y)
+	: BasicPlatform(gw, no, y)
+{
 }
 
 MovingPlatform::MovingPlatform(GameWorld *gw, int no, double y, double freq)

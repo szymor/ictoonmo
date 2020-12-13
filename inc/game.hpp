@@ -71,6 +71,16 @@ public:
 	void process(Uint32 ms) override;
 };
 
+class RestlessPlatform : public BasicPlatform
+{
+public:
+	explicit RestlessPlatform(GameWorld *gw, int no, double y);
+	void process(Uint32 ms) override;
+private:
+	double t;
+	double targetx;
+};
+
 class ElevatorPlatform : public BasicPlatform
 {
 public:
@@ -81,6 +91,12 @@ public:
 private:
 	double ay;
 	double vy;
+};
+
+class SpringPlatform : public BasicPlatform
+{
+public:
+	explicit SpringPlatform(GameWorld *gw, int no, double y);
 };
 
 class MovingPlatform : public IPlatform
